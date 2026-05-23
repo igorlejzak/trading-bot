@@ -27,6 +27,16 @@ def pobierz_dane(symbol):
     
     return df
 
+
+kapital= 1000.0
+rozmiar = 100.0
+
+
+
+
+
+
+
 exchange = ccxt.bybit()
 pozycja = {"otwarta": False, "typ": None, "entry": None}
 
@@ -38,6 +48,11 @@ pozycje = {
     "XRP/USDT": {"otwarta": False, "typ": None, "entry": None},
     "HYPE/USDT": {"otwarta": False, "typ": None, "entry": None}
 }
+
+
+
+
+
 
 while True:
     for coin in coiny:
@@ -61,26 +76,29 @@ while True:
                 pozycja["entry"] = cena
                 print(f"OTWARTO LONG po cenie {cena}")
 
-        else:   # MAM POZYCJĘ → szukam sygnału wyjścia
+        else:   #w pozycji
             entry= pozycja["entry"]
             if pozycja["typ"] == "short":
                 tp = entry * 0.99
                 sl = entry * 1.03
-                if cena <= tp:
+                if cena <= tp or cena >= sl:          
                     pozycja["otwarta"] = False
-                    print(f"ZAMKNIĘTO SHORT z zyskiem po cenie {cena}")
-                if cena >= sl:
-                    pozycja["otwarta"] = False
-                    print(f"ZAMKNIĘTO SHORT ze stratą po cenie {cena}")
+                    zmiana = (cena - entry) / entry
+                    zysk = rozmiar * zmiana
+                    kapital += zysk
+                    print(f"ZAMKNIĘTO SHORT {coin} | wynik: {zysk:.2f}$ | kapitał: {kapital:.2f}$")
 
             elif pozycja["typ"] == "long":
                 tp = entry * 1.01
                 sl = entry * 0.97
-                if cena >= tp:
+                if cena >= tp or cena <= sl:          
                     pozycja["otwarta"] = False
-                    print(f"ZAMKNIĘTO LONG z zyskiem po cenie {cena}")
-                if cena <= sl:
-                    pozycja["otwarta"] = False
-                    print(f"ZAMKNIĘTO LONG ze stratą po cenie {cena}")
-        print(f"Sprawdzam... cena: {cena}, BB dolna: {ostatnia['bb_bbl']:.1f}, StochRSI: {ostatnia['stochrsi_k']:.1f}")
+                    zmiana = (entry - cena) / entry
+                    zysk = rozmiar * zmiana
+                    kapital += zysk
+                    print(f"ZAMKNIĘTO LONG {coin} | wynik: {zysk:.2f}$ | kapitał: {kapital:.2f}$")
+
+        print(f"{coin} | cena: {cena}, BB dolna: {ostatnia['bb_bbl']:.1f}, StochRSI: {ostatnia['stochrsi_k']:.1f}")
     time.sleep(5)
+
+    print(f"Kapitał: {kapital:.2f}$")
