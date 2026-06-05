@@ -13,7 +13,7 @@ app = FastAPI()
 # --- stan globalny ---
 kapital = 1000.0
 rozmiar = 100.0
-exchange = ccxt.bybit()
+exchange = ccxt.binance()
 coiny = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "HYPE/USDT"]
 pozycje = {c: {"otwarta": False, "typ": None, "entry": None} for c in coiny}
 
