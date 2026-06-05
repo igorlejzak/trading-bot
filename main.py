@@ -1,7 +1,9 @@
+
 import ccxt
 import pandas as pd
 import numpy as np
 import time
+import json
 
 from ta.volatility import BollingerBands
 from ta.momentum import StochRSIIndicator 
@@ -55,12 +57,28 @@ pozycje = {
 
 
 while True:
+
+    stan = {
+    "kapital": kapital,
+    "coiny": {}
+    }
+
     for coin in coiny:
         df = pobierz_dane(coin)           # pobierz dane TEGO coina
         pozycja = pozycje[coin]
 
         ostatnia = df.iloc[-1]
         cena = df['close'].iloc[-1]
+
+        stan["coiny"][coin] = {
+        "cena": float(cena),
+        "bb_gorna": float(ostatnia['bb_bbh']),
+        "bb_dolna": float(ostatnia['bb_bbl']),
+        "stochrsi": float(ostatnia['stochrsi_k']),
+        "pozycja_otwarta": pozycja["otwarta"],
+        "pozycja_typ": pozycja["typ"],
+        "pozycja_entry": pozycja["entry"]
+        }
 
         if not pozycja["otwarta"]:
             # NIE MAM POZYCJI → szukam sygnału wejścia
@@ -83,7 +101,7 @@ while True:
                 sl = entry * 1.03
                 if cena <= tp or cena >= sl:          
                     pozycja["otwarta"] = False
-                    zmiana = (cena - entry) / entry
+                    zmiana = (entry - cena) / entry
                     zysk = rozmiar * zmiana
                     kapital += zysk
                     print(f"ZAMKNIĘTO SHORT {coin} | wynik: {zysk:.2f}$ | kapitał: {kapital:.2f}$")
@@ -93,12 +111,14 @@ while True:
                 sl = entry * 0.97
                 if cena >= tp or cena <= sl:          
                     pozycja["otwarta"] = False
-                    zmiana = (entry - cena) / entry
+                    zmiana = (cena - entry) / entry
                     zysk = rozmiar * zmiana
                     kapital += zysk
                     print(f"ZAMKNIĘTO LONG {coin} | wynik: {zysk:.2f}$ | kapitał: {kapital:.2f}$")
 
         print(f"{coin} | cena: {cena}, BB dolna: {ostatnia['bb_bbl']:.1f}, StochRSI: {ostatnia['stochrsi_k']:.1f}")
-    time.sleep(5)
+    with open("stan.json", "w") as f:
+        json.dump(stan, f, indent=2)
 
+    time.sleep(0.1)
     print(f"Kapitał: {kapital:.2f}$")

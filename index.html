@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trading Bot Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0d1117; color: #e6edf3; padding: 20px; }
+        h1 { color: #58a6ff; }
+        .kapital { font-size: 2em; color: #3fb950; margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        th { background: #161b22; color: #58a6ff; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #21262d; }
+        tr:hover { background: #161b22; }
+        .pozycja-long { color: #3fb950; font-weight: bold; }
+        .pozycja-short { color: #f85149; font-weight: bold; }
+        .brak { color: #8b949e; }
+    </style>
+</head>
+<body>
+    <h1>🤖 Trading Bot Dashboard</h1>
+    <div class="kapital" id="kapital">Kapitał: ładowanie...</div>
+
+    <h2>Watching List</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Para</th>
+                <th>Cena</th>
+                <th>BB Górna</th>
+                <th>BB Dolna</th>
+                <th>StochRSI</th>
+                <th>Pozycja</th>
+                <th>Entry</th>
+            </tr>
+        </thead>
+        <tbody id="tabela"></tbody>
+    </table>
+
+    <script>
+        async function odswierz() {
+            const res = await fetch('/api/stan');
+            const dane = await res.json();
+
+            document.getElementById('kapital').innerText = 
+                `Kapitał: $${dane.kapital.toFixed(2)}`;
+
+            const tabela = document.getElementById('tabela');
+            tabela.innerHTML = '';
+
+            for (const [coin, info] of Object.entries(dane.coiny)) {
+                const pozycja = info.pozycja_otwarta 
+                    ? `<span class="pozycja-${info.pozycja_typ}">${info.pozycja_typ.toUpperCase()}</span>`
+                    : `<span class="brak">brak</span>`;
+
+                const entry = info.pozycja_entry 
+                    ? `$${info.pozycja_entry.toFixed(4)}` 
+                    : '-';
+
+                tabela.innerHTML += `
+                    <tr>
+                        <td><b>${coin}</b></td>
+                        <td>$${info.cena.toFixed(4)}</td>
+                        <td>$${info.bb_gorna.toFixed(2)}</td>
+                        <td>$${info.bb_dolna.toFixed(2)}</td>
+                        <td>${info.stochrsi.toFixed(1)}</td>
+                        <td>${pozycja}</td>
+                        <td>${entry}</td>
+                    </tr>`;
+            }
+        }
+
+        odswierz();
+        setInterval(odswierz, 1000);
+    </script>
+</body>
+</html>
