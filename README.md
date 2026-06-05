@@ -2,7 +2,7 @@
 
 A live cryptocurrency trading bot with a real-time web dashboard. The bot monitors multiple trading pairs simultaneously, detects entry signals based on technical indicators, and tracks paper trading performance — all visible through a browser-based dashboard.
 
-**Live demo:** `[your-railway-link-here]`
+**Live demo:** `[https://trading-bot-production-ba29.up.railway.app]`
 
 ---
 
