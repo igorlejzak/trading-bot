@@ -2,37 +2,37 @@
   "kapital": 1000.0,
   "coiny": {
     "BTC/USDT": {
-      "cena": 60612.6,
-      "bb_gorna": 60852.188586896526,
-      "bb_dolna": 60494.891413103476,
-      "stochrsi": 55.84271952633745,
+      "cena": 60696.3,
+      "bb_gorna": 60817.842488838294,
+      "bb_dolna": 60508.177511161695,
+      "stochrsi": 82.16718779598897,
       "pozycja_otwarta": false,
       "pozycja_typ": null,
       "pozycja_entry": null
     },
     "ETH/USDT": {
-      "cena": 1552.51,
-      "bb_gorna": 1565.6569811283543,
-      "bb_dolna": 1550.3430188716457,
-      "stochrsi": 22.267087893215233,
+      "cena": 1556.79,
+      "bb_gorna": 1564.7597986987018,
+      "bb_dolna": 1550.3972013012983,
+      "stochrsi": 52.21968529688985,
       "pozycja_otwarta": false,
       "pozycja_typ": null,
       "pozycja_entry": null
     },
     "SOL/USDT": {
-      "cena": 61.6,
-      "bb_gorna": 62.219959148145165,
-      "bb_dolna": 61.45504085185483,
-      "stochrsi": 31.69922590354365,
+      "cena": 61.8,
+      "bb_gorna": 62.14525933634832,
+      "bb_dolna": 61.45574066365168,
+      "stochrsi": 52.174099290428714,
       "pozycja_otwarta": false,
       "pozycja_typ": null,
       "pozycja_entry": null
     },
     "XRP/USDT": {
-      "cena": 1.0804,
-      "bb_gorna": 1.09952684011939,
-      "bb_dolna": 1.0759531598806098,
-      "stochrsi": 13.466356906621021,
+      "cena": 1.0838,
+      "bb_gorna": 1.0965122333503803,
+      "bb_dolna": 1.0762377666496195,
+      "stochrsi": 57.96661246597158,
       "pozycja_otwarta": false,
       "pozycja_typ": null,
       "pozycja_entry": null

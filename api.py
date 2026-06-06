@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+
 import json
 import threading
 import ccxt
@@ -7,12 +8,62 @@ import pandas as pd
 from ta.volatility import BollingerBands
 from ta.momentum import StochRSIIndicator
 import time
+
 import csv
 from datetime import datetime
 
+import os
+import base64
+import requests
+
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+GITHUB_REPO = os.environ.get("GITHUB_REPO", "IgorLejzak/trading-bot")
+GITHUB_FILE = "historia.csv"
+HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"}
+
 app = FastAPI()
 
-# --- stan globalny ---
+def wczytaj_historie_z_github():
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
+    res = requests.get(url, headers=HEADERS)
+    if res.status_code == 200:
+        content = base64.b64decode(res.json()["content"]).decode("utf-8")
+        historia = []
+        for line in content.strip().split("\n")[1:]:  # pomijamy nagłówek
+            parts = line.split(",")
+            if len(parts) == 6:
+                historia.append({
+                    "time": parts[0],
+                    "pair": parts[1],
+                    "direction": parts[2],
+                    "entry": float(parts[3]),
+                    "close": float(parts[4]),
+                    "pnl": float(parts[5])
+                })
+        return historia
+    return []
+
+def zapisz_historie_na_github(historia):
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
+    
+    res = requests.get(url, headers=HEADERS)
+    sha = res.json().get("sha") if res.status_code == 200 else None
+    
+    # zbuduj zawartość CSV
+    lines = ["Time,Pair,Direction,Entry,Close,PnL"]
+    for h in historia:
+        lines.append(f"{h['time']},{h['pair']},{h['direction']},{h['entry']},{h['close']},{h['pnl']}")
+    content = "\n".join(lines)
+    encoded = base64.b64encode(content.encode()).decode()
+    
+    payload = {
+        "message": "update historia.csv",
+        "content": encoded,
+        "sha": sha
+    }
+    requests.put(url, json=payload, headers=HEADERS)
+
+
 try:
     with open("stan.json", "r") as f:
         dane = json.load(f)
@@ -24,7 +75,7 @@ rozmiar = 100.0
 exchange = ccxt.okx()
 coiny = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"]
 pozycje = {c: {"otwarta": False, "typ": None, "entry": None} for c in coiny}
-historia = []
+historia = wczytaj_historie_z_github()
 
 def pobierz_dane(symbol):
     swieczki = exchange.fetch_ohlcv(symbol, timeframe='15m', limit=100)
@@ -77,11 +128,12 @@ def bot_loop():
                             historia.append({
                                 "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "pair": coin,
-                                "direction": "SHORT",  # albo "LONG"
+                                "direction": "SHORT",
                                 "entry": round(entry, 4),
                                 "close": round(cena, 4),
                                 "pnl": round(zysk, 2)
                                 })
+                            zapisz_historie_na_github(historia)
                             pozycja["otwarta"] = False
                     elif pozycja["typ"] == "long":
                         if cena >= entry * 1.01 or cena <= entry * 0.97:
@@ -96,6 +148,7 @@ def bot_loop():
                                 "close": round(cena, 4),
                                 "pnl": round(zysk, 2)
                             })
+                            zapisz_historie_na_github(historia)
                             pozycja["otwarta"] = False
 
             except Exception as e:
