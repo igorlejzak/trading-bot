@@ -1,4 +1,4 @@
-# 🤖 Trading Bot Dashboard
+# 🤖 Trading Bot
 
 A live cryptocurrency trading bot with a real-time web dashboard. The bot monitors multiple trading pairs simultaneously, detects entry signals based on technical indicators, and tracks paper trading performance — all visible through a browser-based dashboard.
 
@@ -6,7 +6,7 @@ A live cryptocurrency trading bot with a real-time web dashboard. The bot monito
 
 ---
 
-## 📊 Strategy
+## Strategy
 
 The bot uses a **mean-reversion strategy** — the idea that when price moves too far from its average, it tends to return. Entries are triggered when two conditions are met at the same time:
 
@@ -35,7 +35,7 @@ Both K and D lines must confirm the signal before the bot acts.
 
 ---
 
-## 📈 Entry & Exit Logic
+## Entry & Exit Logic
 
 | Direction | Entry condition | Take Profit | Stop Loss |
 |-----------|----------------|-------------|-----------|
@@ -46,7 +46,7 @@ Position size: **$100 per trade** on a starting capital of **$1,000** (paper tra
 
 ---
 
-## 🖥️ Dashboard
+## Dashboard
 
 The web dashboard updates in real time and shows:
 
@@ -57,7 +57,7 @@ The web dashboard updates in real time and shows:
 
 ---
 
-## 🔧 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -73,7 +73,7 @@ The web dashboard updates in real time and shows:
 
 ---
 
-## 📦 Monitored Pairs
+## Monitored Pairs
 
 - BTC/USDT
 - ETH/USDT
@@ -82,7 +82,7 @@ The web dashboard updates in real time and shows:
 
 ---
 
-## 🚀 Run Locally
+## Run Locally
 
 **1. Clone the repository**
 ```bash
@@ -116,7 +116,7 @@ The bot starts automatically in the background when the server launches.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 trading-bot/
@@ -131,6 +131,6 @@ trading-bot/
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This project is for **educational purposes only**. All trading is simulated (paper trading) — no real funds are used. Past performance of the strategy does not guarantee future results.
