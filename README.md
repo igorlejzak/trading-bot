@@ -128,9 +128,3 @@ trading-bot/
 ├── Procfile            # Railway deployment config
 └── README.md
 ```
-
----
-
-## Disclaimer
-
-This project is for **educational purposes only**. All trading is simulated (paper trading) — no real funds are used. Past performance of the strategy does not guarantee future results.
