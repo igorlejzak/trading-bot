@@ -7,15 +7,24 @@ import pandas as pd
 from ta.volatility import BollingerBands
 from ta.momentum import StochRSIIndicator
 import time
+import csv
+from datetime import datetime
 
 app = FastAPI()
 
 # --- stan globalny ---
-kapital = 1000.0
+try:
+    with open("stan.json", "r") as f:
+        dane = json.load(f)
+        kapital = dane.get("kapital", 1000.0)
+except:
+    kapital = 1000.0
+
 rozmiar = 100.0
 exchange = ccxt.okx()
 coiny = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"]
 pozycje = {c: {"otwarta": False, "typ": None, "entry": None} for c in coiny}
+historia = []
 
 def pobierz_dane(symbol):
     swieczki = exchange.fetch_ohlcv(symbol, timeframe='15m', limit=100)
@@ -63,12 +72,30 @@ def bot_loop():
                     if pozycja["typ"] == "short":
                         if cena <= entry * 0.99 or cena >= entry * 1.03:
                             zmiana = (entry - cena) / entry
-                            kapital += rozmiar * zmiana
+                            zysk = rozmiar * zmiana
+                            kapital += zysk
+                            historia.append({
+                                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "pair": coin,
+                                "direction": "SHORT",  # albo "LONG"
+                                "entry": round(entry, 4),
+                                "close": round(cena, 4),
+                                "pnl": round(zysk, 2)
+                                })
                             pozycja["otwarta"] = False
                     elif pozycja["typ"] == "long":
                         if cena >= entry * 1.01 or cena <= entry * 0.97:
                             zmiana = (cena - entry) / entry
-                            kapital += rozmiar * zmiana
+                            zysk = rozmiar * zmiana
+                            kapital += zysk
+                            historia.append({
+                                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "pair": coin,
+                                "direction": "LONG",
+                                "entry": round(entry, 4),
+                                "close": round(cena, 4),
+                                "pnl": round(zysk, 2)
+                            })
                             pozycja["otwarta"] = False
 
             except Exception as e:
@@ -87,6 +114,11 @@ thread.start()
 def get_stan():
     with open("stan.json", "r") as f:
         return json.load(f)
+
+
+@app.get("/api/historia")
+def get_historia():
+    return historia
 
 @app.get("/")
 def index():
