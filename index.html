@@ -22,9 +22,10 @@
             padding: 8px 12px; border-radius: 6px; font-size: 14px; cursor: pointer;
         }
         #tradingview-widget {
-            width: 100%;
-            height: calc(100vh - 280px);
-            min-height: 500px;
+            width: 80%;
+            height: 500px;
+            margin: 0 auto;
+            pointer-events: none;
         }
         #tradingview-widget iframe {
             width: 100%;
@@ -33,7 +34,7 @@
             border-radius: 10px;
         }
 
-        /* PUZZLE GRID */
+        
         .grid { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 36px; }
         .card {
             background: #161b22; border: 1px solid #30363d; border-radius: 12px;
@@ -109,7 +110,7 @@
             const coin = document.getElementById('coin-select').value;
             document.getElementById('tradingview-widget').innerHTML = `
                 <iframe
-                    src="https://www.tradingview.com/widgetembed/?symbol=OKX:${coin}&interval=15&theme=dark&style=1&locale=en&hide_top_toolbar=0&save_image=0"
+                    src="https://www.tradingview.com/widgetembed/?symbol=OKX:${coin}&interval=15&theme=dark&style=1&studies=BB%3BR%2C14%3BSTOCHRSI%3BR%2C14&hide_volume=1"
                     style="width:100%;height:100%;border:none;border-radius:10px;">
                 </iframe>`;
         }
