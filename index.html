@@ -9,7 +9,7 @@
 
         .header { display: flex; align-items: baseline; gap: 20px; margin-bottom: 24px; }
         h1 { color: #58a6ff; font-size: 1.8em; }
-        .kapital-inline { color: #3fb950; font-size: 1.4em; font-weight: bold; margin-left: auto; }
+        .kapital-inline { color: #e6edf3; font-size: 1.4em; font-weight: bold; margin-left: auto; }
 
         /* CHART */
         .chart-section { margin-bottom: 28px; }
@@ -88,6 +88,7 @@
         <div class="tab active" onclick="showTab('watching')">Watching List</div>
         <div class="tab" onclick="showTab('history')">Position History</div>
         <div class="tab" onclick="showTab('stats')">Statistics</div>
+        <div class="tab" onclick="showTab('strategy')">How it works</div>
     </div>
 
     <div id="watching" class="tab-content active">
@@ -104,6 +105,46 @@
             </tbody>
         </table>
     </div>
+    <div id="strategy" class="tab-content">
+    <div style="max-width: 900px; line-height: 1.7;">
+        <h3 style="color:#58a6ff; margin-bottom: 16px;">Strategy Overview</h3>
+        <p style="color:#8b949e; margin-bottom: 20px;">
+            This bot uses a <b>mean-reversion strategy</b> — the idea that when price moves too far from its average, it tends to return. The bot acts only when <b>two conditions confirm</b> an extreme.
+        </p>
+
+        <h3 style="color:#58a6ff; margin-bottom: 12px;">Entry Rules</h3>
+        <p style="color:#8b949e; margin-bottom: 8px;">
+            <b style="color:#3fb950;">LONG signal:</b> Price drops more than 1% below the lower Bollinger Band AND StochRSI (K & D) below 20 (oversold).
+        </p>
+        <p style="color:#8b949e; margin-bottom: 20px;">
+            <b style="color:#f85149;">SHORT signal:</b> Price moves more than 1% above the upper Bollinger Band AND StochRSI (K & D) above 80 (overbought).
+        </p>
+
+        <h3 style="color:#58a6ff; margin-bottom: 12px;">Exit Rules</h3>
+        <p style="color:#8b949e; margin-bottom: 20px;">
+            <b>Take Profit:</b> +1% from entry &nbsp;|&nbsp; <b>Stop Loss:</b> −3% from entry<br>
+            Position size: $100 per trade. Starting capital: $1,000.
+        </p>
+
+        <h3 style="color:#58a6ff; margin-bottom: 12px;">Indicators Explained</h3>
+        <p style="color:#8b949e; margin-bottom: 12px;">
+            <b>Bollinger Bands (BB)</b> — three lines: SMA(20), upper band (+2σ), lower band (−2σ). Price outside the bands suggests an extreme move.
+        </p>
+        <p style="color:#8b949e; margin-bottom: 20px;">
+            <b>Stochastic RSI</b> — momentum oscillator (0–100). Above 80 = overbought, below 20 = oversold. More sensitive than regular RSI.
+        </p>
+
+        <h3 style="color:#58a6ff; margin-bottom: 12px;">Tech Stack</h3>
+        <p style="color:#8b949e; margin-bottom: 20px;">
+            Python · FastAPI · ccxt (OKX) · ta · Pandas · Vanilla JS · TradingView Widget · Railway deploy · GitHub as persistent storage
+        </p>
+
+        <h3 style="color:#58a6ff; margin-bottom: 12px;">Chart Tips</h3>
+        <p style="color:#8b949e;">
+            For best visualization, hide the volume indicator and add <b>Bollinger Bands</b> + <b>Stochastic RSI</b> directly on the TradingView chart above (click "Indicators" in the chart toolbar).
+        </p>
+    </div>
+</div>
 
     <div id="stats" class="tab-content">
         <div class="stats" id="stats-grid"></div>
@@ -140,7 +181,6 @@
 
                 const kEl = document.getElementById('kapital');
                 kEl.innerText = `$${dane.kapital.toFixed(2)}`;
-                kEl.style.color = dane.kapital >= 1000 ? '#3fb950' : '#f85149';
 
                 const grid = document.getElementById('grid');
                 grid.innerHTML = '';
@@ -207,8 +247,8 @@
                     <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value">${winrate}%</div></div>
                     <div class="stat-card"><div class="stat-label">Wins / Losses</div><div class="stat-value">${wins} / ${losses}</div></div>
                     <div class="stat-card"><div class="stat-label">Total PnL</div><div class="stat-value" style="color:${totalPnl >= 0 ? '#3fb950' : '#f85149'}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}</div></div>
-                    <div class="stat-card"><div class="stat-label">Best Trade</div><div class="stat-value" style="color:#3fb950">+$${bestTrade}</div></div>
-                    <div class="stat-card"><div class="stat-label">Worst Trade</div><div class="stat-value" style="color:#f85149">$${worstTrade}</div></div>
+                    <div class="stat-card"><div class="stat-label">Best Trade</div><div class="stat-value" style="color:${bestTrade >= 0 ? '#3fb950' : '#f85149'}">${bestTrade >= 0 ? '+' : ''}$${bestTrade}</div></div>
+                    <div class="stat-card"><div class="stat-label">Worst Trade</div><div class="stat-value" style="color:${worstTrade >= 0 ? '#3fb950' : '#f85149'}">${worstTrade >= 0 ? '+' : ''}$${worstTrade}</div></div>
                 `;
             } catch(e) { console.error(e); }
         }
