@@ -23,59 +23,48 @@ HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"}
 
 app = FastAPI()
 
-def wczytaj_historie_z_github():
+def wczytaj_z_github():
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
     res = requests.get(url, headers=HEADERS)
     if res.status_code == 200:
         content = base64.b64decode(res.json()["content"]).decode("utf-8")
+        lines = content.strip().split("\n")
+        kapital = 1000.0
         historia = []
-        for line in content.strip().split("\n")[1:]:  # pomijamy nagłówek
-            parts = line.split(",")
-            if len(parts) == 6:
-                historia.append({
-                    "time": parts[0],
-                    "pair": parts[1],
-                    "direction": parts[2],
-                    "entry": float(parts[3]),
-                    "close": float(parts[4]),
-                    "pnl": float(parts[5])
-                })
-        return historia
-    return []
+        for line in lines:
+            if line.startswith("# Capital:"):
+                kapital = float(line.replace("# Capital:", "").strip())
+            elif "," in line and not line.startswith("Time"):
+                parts = line.split(",")
+                if len(parts) == 6:
+                    historia.append({
+                        "time": parts[0], "pair": parts[1], "direction": parts[2],
+                        "entry": float(parts[3]), "close": float(parts[4]), "pnl": float(parts[5])
+                    })
+        return historia, kapital
+    return [], 1000.0
 
-def zapisz_historie_na_github(historia):
+def zapisz_historie_na_github(historia, kapital):
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
-    
     res = requests.get(url, headers=HEADERS)
     sha = res.json().get("sha") if res.status_code == 200 else None
     
-    # zbuduj zawartość CSV
-    lines = ["Time,Pair,Direction,Entry,Close,PnL"]
+    lines = [f"# Capital: {kapital:.2f}"]
+    lines.append("Time,Pair,Direction,Entry,Close,PnL")
     for h in historia:
         lines.append(f"{h['time']},{h['pair']},{h['direction']},{h['entry']},{h['close']},{h['pnl']}")
     content = "\n".join(lines)
     encoded = base64.b64encode(content.encode()).decode()
     
-    payload = {
-        "message": "update historia.csv",
-        "content": encoded,
-        "sha": sha
-    }
+    payload = {"message": "update historia.csv", "content": encoded, "sha": sha}
     requests.put(url, json=payload, headers=HEADERS)
 
-
-try:
-    with open("stan.json", "r") as f:
-        dane = json.load(f)
-        kapital = dane.get("kapital", 1000.0)
-except:
-    kapital = 1000.0
 
 rozmiar = 100.0
 exchange = ccxt.okx()
 coiny = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"]
 pozycje = {c: {"otwarta": False, "typ": None, "entry": None} for c in coiny}
-historia = wczytaj_historie_z_github()
+historia, kapital = wczytaj_z_github()
 
 def pobierz_dane(symbol):
     swieczki = exchange.fetch_ohlcv(symbol, timeframe='15m', limit=100)
@@ -133,7 +122,7 @@ def bot_loop():
                                 "close": round(cena, 4),
                                 "pnl": round(zysk, 2)
                                 })
-                            zapisz_historie_na_github(historia)
+                            zapisz_historie_na_github(historia, kapital)
                             pozycja["otwarta"] = False
                     elif pozycja["typ"] == "long":
                         if cena >= entry * 1.01 or cena <= entry * 0.97:
@@ -148,7 +137,7 @@ def bot_loop():
                                 "close": round(cena, 4),
                                 "pnl": round(zysk, 2)
                             })
-                            zapisz_historie_na_github(historia)
+                            zapisz_historie_na_github(historia, kapital)
                             pozycja["otwarta"] = False
 
             except Exception as e:
@@ -162,7 +151,7 @@ def bot_loop():
 thread = threading.Thread(target=bot_loop, daemon=True)
 thread.start()
 
-# --- endpointy ---
+
 @app.get("/api/stan")
 def get_stan():
     with open("stan.json", "r") as f:
