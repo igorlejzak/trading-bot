@@ -29,18 +29,17 @@ def wczytaj_z_github():
     if res.status_code == 200:
         content = base64.b64decode(res.json()["content"]).decode("utf-8")
         lines = content.strip().split("\n")
-        kapital = 1000.0
         historia = []
         for line in lines:
-            if line.startswith("# Capital:"):
-                kapital = float(line.replace("# Capital:", "").strip())
-            elif "," in line and not line.startswith("Time"):
+            if "," in line and not line.startswith("Time") and not line.startswith("#"):
                 parts = line.split(",")
                 if len(parts) == 6:
                     historia.append({
                         "time": parts[0], "pair": parts[1], "direction": parts[2],
                         "entry": float(parts[3]), "close": float(parts[4]), "pnl": float(parts[5])
                     })
+        # kapitał = 1000 + suma wszystkich PnL
+        kapital = 1000.0 + sum(h["pnl"] for h in historia)
         return historia, kapital
     return [], 1000.0
 
@@ -49,8 +48,7 @@ def zapisz_historie_na_github(historia, kapital):
     res = requests.get(url, headers=HEADERS)
     sha = res.json().get("sha") if res.status_code == 200 else None
     
-    lines = [f"# Capital: {kapital:.2f}"]
-    lines.append("Time,Pair,Direction,Entry,Close,PnL")
+    lines = ["Time,Pair,Direction,Entry,Close,PnL"]
     for h in historia:
         lines.append(f"{h['time']},{h['pair']},{h['direction']},{h['entry']},{h['close']},{h['pnl']}")
     content = "\n".join(lines)
@@ -58,14 +56,6 @@ def zapisz_historie_na_github(historia, kapital):
     
     payload = {"message": "update historia.csv", "content": encoded, "sha": sha}
     requests.put(url, json=payload, headers=HEADERS)
-
-
-rozmiar = 100.0
-exchange = ccxt.okx()
-coiny = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"]
-pozycje = {c: {"otwarta": False, "typ": None, "entry": None} for c in coiny}
-historia, kapital = wczytaj_z_github()
-
 def pobierz_dane(symbol):
     swieczki = exchange.fetch_ohlcv(symbol, timeframe='15m', limit=100)
     df = pd.DataFrame(swieczki, columns=['timestamp','open','high','low','close','volume'])
@@ -76,6 +66,12 @@ def pobierz_dane(symbol):
     df['stochrsi_k'] = indicator_stochrsi.stochrsi_k() * 100
     df['stochrsi_d'] = indicator_stochrsi.stochrsi_d() * 100
     return df
+
+exchange = ccxt.okx()
+coiny = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"]
+pozycje = {c: {"otwarta": False, "typ": None, "entry": None} for c in coiny}
+historia, kapital = wczytaj_z_github()
+rozmiar = 100.0
 
 def bot_loop():
     global kapital
