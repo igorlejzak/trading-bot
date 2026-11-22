@@ -118,8 +118,9 @@ if __name__ == "__main__":
         for coin in COINS:
             download(coin)
     else:
+        wybrane = [a.upper() + "/USDT" for a in sys.argv[1:]] or COINS
         rows = []
-        for coin in COINS:
+        for coin in wybrane:
             print("liczę", coin, "...")
             rows.extend(evaluate(coin))
         res = pd.DataFrame(rows).set_index(["strategia", "coin"]).sort_index()

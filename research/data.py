@@ -1,9 +1,8 @@
 import sqlite3
-
 import ccxt
 import pandas as pd
-
-DB_PATH = "candles.db"
+import os
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "candles.db")
 EXCHANGE_ID = "okx"
 exchange = ccxt.okx({"enableRateLimit": True})
 
@@ -81,7 +80,7 @@ def save(conn, symbol, timeframe, candles):
 def load_candles(symbol, timeframe, since, until):
     """Główna funkcja: dociąga brakujące dane i zwraca DataFrame z bazy."""
     step = exchange.parse_timeframe(timeframe) * 1000
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=60)
     try:
         oldest, newest = get_cached_range(conn, symbol, timeframe)
 

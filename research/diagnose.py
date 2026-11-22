@@ -73,7 +73,7 @@ def loss_streaks(t, top=5):
     return pd.DataFrame(rows).sort_values(["strat_z_rzedu", "suma_usd"], ascending=[False, True]).head(top)
 
 
-def diagnose(m1, test_start, strats=STRATS, png="diagnose.png"):
+def diagnose(m1, test_start, strats=STRATS, png="diagnose.png", symbol="SOL/USDT"):
     pd.set_option("display.width", 250)
     pd.set_option("display.max_columns", None)
     s = prepare_state(m1).reset_index(drop=True)
@@ -97,7 +97,7 @@ def diagnose(m1, test_start, strats=STRATS, png="diagnose.png"):
         t["trend7_%"] = ret7[t["i"]]
         t["przeciw_trendowi"] = ((t["side"] == "short") & (t["trend7_%"] > 0)) | ((t["side"] == "long") & (t["trend7_%"] < 0))
         all_t[name] = t
-        print(f"\n######## {name}: {len(t)} transakcji, wynik {t['pnl_usd'].sum():.1f} USD ########")
+        print(f"\n######## {symbol} | {name}: {len(t)} transakcji, wynik {t['pnl_usd'].sum():.1f} USD ########")
 
         print("\n--- 5 największych spadków kapitału ---")
         print(drawdowns(t).to_string(index=False))
@@ -113,7 +113,8 @@ def diagnose(m1, test_start, strats=STRATS, png="diagnose.png"):
         print("\n--- wynik wg warunków rynku w chwili wejścia ---")
         t["zmiennosc_grupa"] = pd.qcut(t["vol"], 3, labels=["niska", "średnia", "wysoka"])
         t["trend_grupa"] = pd.qcut(t["trend7_%"].abs(), 3, labels=["boczny", "umiarkowany", "silny"])
-        for g in ["zmiennosc_grupa", "trend_grupa", "przeciw_trendowi", "side"]:
+        t["kierunek_vs_trend"] = t["side"] + np.where(t["przeciw_trendowi"], " przeciw trendowi", " z trendem")
+        for g in ["zmiennosc_grupa", "trend_grupa", "przeciw_trendowi", "side", "kierunek_vs_trend"]:
             print(t.groupby(g, observed=True).agg(transakcji=("pnl_usd", "size"), wynik_usd=("pnl_usd", "sum"),
                                                   srednio_usd=("pnl_usd", "mean"),
                                                   win_pct=("win", lambda x: round(x.mean() * 100))).round(2).to_string())
@@ -127,7 +128,7 @@ def diagnose(m1, test_start, strats=STRATS, png="diagnose.png"):
         fig, axes = plt.subplots(len(all_t) + 1, 1, figsize=(14, 4 + 3 * len(all_t)), sharex=True)
         daily = mdf["close"].resample("D").last()
         axes[0].plot(daily.index, daily.values, color="black", lw=1)
-        axes[0].set_title("Cena SOL/USDT")
+        axes[0].set_title(f"Cena {symbol}")
         axes[0].axvline(test_start, color="gray", ls="--")
         for ax, (name, t) in zip(axes[1:], all_t.items()):
             eq = t["pnl_usd"].cumsum().to_numpy()

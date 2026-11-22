@@ -97,11 +97,12 @@ def weights_for(w1, n_entries):
 
 
 def simulate_avg(hi, lo, sig_idx, sig_side, sig_price, tp, sl, weights, dists, sl_ref="last",
-                 tp_arr=None, sl_arr=None, dist_arr=None):
+                 tp_arr=None, sl_arr=None, dist_arr=None, cooldown=0):
     """weights: udział kapitału na kolejne wejścia (suma 1). dists: odległości kolejnych dołożeń od PIERWSZEGO
     wejścia (np. [0.02] albo [0.02, 0.04]). Zwraca te same tablice co grid.simulate + liczbę wypełnionych wejść.
     tp_arr / sl_arr / dist_arr (opcjonalnie): osobne TP, SL i odstępy DLA KAŻDEGO SYGNAŁU - używane przez
-    wersję dopasowaną do zmienności (grid_vol.py). Wartość jest zamrażana w chwili wejścia."""
+    wersję dopasowaną do zmienności (grid_vol.py). Wartość jest zamrażana w chwili wejścia.
+    cooldown: ile minut po STOP LOSSIE nie otwieramy nowej pozycji (0 = od razu, jak bot live)."""
     n, n_sig, n_w = len(hi), len(sig_idx), len(weights)
     # tp: jedna liczba (ten sam TP od średniej przez całą pozycję) albo lista/krotka: TP po 1., 2., ... wejściu
     tps = list(tp) if isinstance(tp, (list, tuple)) else [tp] * n_w
@@ -165,7 +166,7 @@ def simulate_avg(hi, lo, sig_idx, sig_side, sig_price, tp, sl, weights, dists, s
         gross = (qty * exit_p - filled) if side == 1 else (filled - qty * exit_p)
         out_idx.append(i); out_gross.append(gross); out_filled.append(filled)
         out_fills.append(k); out_win.append(win)
-        s = int(np.searchsorted(sig_idx, j, side="right"))
+        s = int(np.searchsorted(sig_idx, j + (0 if win else cooldown), side="right"))
 
     return (np.array(out_idx, dtype=np.int64), np.array(out_gross), np.array(out_filled),
             np.array(out_fills), np.array(out_win, dtype=bool))
