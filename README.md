@@ -9,7 +9,7 @@ Short answer so far: the original strategy did **not** have an edge after fees. 
 ![Best setting on SOL: monthly results, equity curve and account size at different leverage](docs/report_1.png)
 
 ---
-
+**Live dashboard:** [trading-bot-production-ba29.up.railway.app](https://trading-bot-production-ba29.up.railway.app). The bot monitors BTC, ETH, SOL and XRP on OKX (paper trading). The dashboard shows current prices against the Bollinger Bands, open positions, the full trade history and statistics.
 ## Repository layout
 
 ```

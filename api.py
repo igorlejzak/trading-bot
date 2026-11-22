@@ -28,9 +28,8 @@ def wczytaj_z_github():
     res = requests.get(url, headers=HEADERS)
     if res.status_code == 200:
         content = base64.b64decode(res.json()["content"]).decode("utf-8")
-        lines = content.strip().split("\n")
         historia = []
-        for line in lines:
+        for line in content.strip().split("\n"):
             if "," in line and not line.startswith("Time") and not line.startswith("#"):
                 parts = line.split(",")
                 if len(parts) == 6:
@@ -38,24 +37,32 @@ def wczytaj_z_github():
                         "time": parts[0], "pair": parts[1], "direction": parts[2],
                         "entry": float(parts[3]), "close": float(parts[4]), "pnl": float(parts[5])
                     })
-        # kapitał = 1000 + suma wszystkich PnL
         kapital = 1000.0 + sum(h["pnl"] for h in historia)
-        return historia, kapital
-    return [], 1000.0
+        print(f"Wczytano {len(historia)} transakcji z GitHub")
+        return historia, kapital, True
+    print(f"BŁĄD wczytywania historii z GitHub: {res.status_code} {res.text[:200]}")
+    return [], 1000.0, False
+
 
 def zapisz_historie_na_github(historia, kapital):
+    if not HISTORIA_OK:
+        # historia nie została wczytana - zapis nadpisałby plik na GitHubie niepełnymi danymi
+        print("Nie zapisuję historii: przy starcie nie udało się jej wczytać z GitHub")
+        return
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
     res = requests.get(url, headers=HEADERS)
     sha = res.json().get("sha") if res.status_code == 200 else None
-    
+
     lines = ["Time,Pair,Direction,Entry,Close,PnL"]
     for h in historia:
         lines.append(f"{h['time']},{h['pair']},{h['direction']},{h['entry']},{h['close']},{h['pnl']}")
-    content = "\n".join(lines)
-    encoded = base64.b64encode(content.encode()).decode()
-    
+    encoded = base64.b64encode("\n".join(lines).encode()).decode()
+
     payload = {"message": "update historia.csv", "content": encoded, "sha": sha}
-    requests.put(url, json=payload, headers=HEADERS)
+    put = requests.put(url, json=payload, headers=HEADERS)
+    if put.status_code not in (200, 201):
+        print(f"BŁĄD zapisu historii na GitHub: {put.status_code} {put.text[:200]}")
+
 def pobierz_dane(symbol):
     swieczki = exchange.fetch_ohlcv(symbol, timeframe='15m', limit=100)
     df = pd.DataFrame(swieczki, columns=['timestamp','open','high','low','close','volume'])
@@ -70,7 +77,7 @@ def pobierz_dane(symbol):
 exchange = ccxt.okx()
 coiny = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"]
 pozycje = {c: {"otwarta": False, "typ": None, "entry": None} for c in coiny}
-historia, kapital = wczytaj_z_github()
+historia, kapital, HISTORIA_OK = wczytaj_z_github()
 rozmiar = 100.0
 
 def bot_loop():
