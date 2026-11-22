@@ -1,0 +1,15 @@
+# środowisko i edytor
+venv/
+.venv/
+.idea/
+__pycache__/
+.pytest_cache/
+
+# dane i wyniki badań (do odtworzenia z kodu)
+*.db
+*.csv
+live_trades.txt
+research/docs/
+
+# historia bota live MUSI zostać w repo - bot zapisuje ją przez GitHub API
+!historia.csv

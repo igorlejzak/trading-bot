@@ -1,0 +1,1 @@
+brak biblioteki tabulate - tabela zapisana w report_summary.csv
