@@ -7,142 +7,61 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/base.css">
 <style>
-  :root {
-    --ink: #0f1722;        /* tło */
-    --panel: #151f2c;      /* powierzchnie */
-    --line: #233044;       /* linie */
-    --text: #dbe4ee;
-    --muted: #7f8ea3;
-    --steel: #6fa3f7;      /* akcent interfejsu */
-    --up: #39cfa6;         /* long / zysk */
-    --down: #ef7b7b;       /* short / strata */
-    --zone-up: rgba(57, 207, 166, .14);
-    --zone-down: rgba(239, 123, 123, .14);
-    --radius: 6px;
-  }
-  * { box-sizing: border-box; }
-  html { background: var(--ink); }
-  body {
-    margin: 0; color: var(--text); background: var(--ink);
-    font: 15px/1.5 "IBM Plex Sans", system-ui, sans-serif;
-    font-variant-numeric: tabular-nums;
-  }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
-  a { color: var(--steel); }
-  :focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
-
-  /* nagłówek */
   header { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap;
-           padding-bottom: 24px; border-bottom: 1px solid var(--line); }
-  h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
-  .status { margin-top: 4px; color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 8px; }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--up); }
-  .dot.off { background: var(--down); }
-  .summary { display: flex; gap: 32px; align-items: flex-end; flex-wrap: wrap; }
-  .metric .v { font-size: 20px; font-weight: 500; }
-  .metric .k { font-size: 12px; color: var(--muted); }
-  #spark { display: block; }
+           padding: 18px 0 22px; border-bottom: 1px solid var(--line); }
+  .strat-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .strat-row .desc { color: var(--muted); font-size: 13px; }
 
-  section { margin-top: 40px; }
-  h2 { margin: 0 0 14px; font-size: 15px; font-weight: 600; }
-  .note { color: var(--muted); font-size: 13px; margin: -8px 0 16px; max-width: 72ch; }
+  /* wykres + lista par */
+  .main { display: grid; grid-template-columns: 1fr 230px; gap: 20px; margin-top: 28px; }
+  .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chart-head h2 { margin: 0; }
+  .chart { height: 500px; overflow: hidden; }
+  .pf-bar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px 0; }
+  .pf-bar .seg button { padding: 2px 10px; }
 
-  /* coiny: pas z poziomami wejścia */
-  .coins { border-top: 1px solid var(--line); }
-  .coin { display: grid; grid-template-columns: 120px 110px 1fr 190px; gap: 20px; align-items: center;
-          width: 100%; padding: 18px 8px; background: none; border: 0; border-bottom: 1px solid var(--line);
-          color: inherit; font: inherit; text-align: left; cursor: pointer; }
-  .coin:hover { background: rgba(111, 163, 247, .04); }
-  .coin[aria-pressed="true"] { background: rgba(111, 163, 247, .07); box-shadow: inset 2px 0 0 var(--steel); }
-  .pair { font-weight: 600; }
-  .pair small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
-  .price { font-size: 18px; font-weight: 500; text-align: right; }
-  .track { position: relative; height: 34px; }
-  .rail { position: absolute; left: 0; right: 0; top: 16px; height: 2px; background: var(--line); }
-  .zone { position: absolute; top: 8px; height: 18px; border-radius: 3px; }
-  .zone.long { left: 0; background: var(--zone-up); }
-  .zone.short { right: 0; background: var(--zone-down); }
-  .band { position: absolute; top: 10px; width: 1px; height: 14px; background: var(--muted); }
-  .marker { position: absolute; top: 9px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%;
-            background: var(--text); border: 3px solid var(--ink); transition: left .6s ease; }
-  .marker.near-long { background: var(--up); }
-  .marker.near-short { background: var(--down); }
-  .entry-tick { position: absolute; top: 4px; width: 2px; height: 26px; margin-left: -1px; background: var(--steel); }
-  .scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .side { font-size: 13px; color: var(--muted); }
-  .side b { font-weight: 500; color: var(--text); }
-  .pos-long { color: var(--up); } .pos-short { color: var(--down); }
+  .pairs h2 { margin: 6px 0 12px; }
+  .pairs .list { height: 500px; overflow: auto; }
+  .pair-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 9px 14px;
+              background: none; border: 0; border-bottom: 1px solid rgba(35, 48, 68, .6); color: inherit; font: inherit;
+              font-size: 14px; cursor: pointer; text-align: left; }
+  .pair-btn:hover { background: rgba(111, 163, 247, .05); }
+  .pair-btn[aria-pressed="true"] { background: rgba(111, 163, 247, .1); box-shadow: inset 2px 0 0 var(--steel); }
+  .pair-btn .n { font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .pair-btn .p { color: var(--muted); }
+  .open-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--steel); }
 
-  /* wykres */
-  .chart { height: 460px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--panel); }
-  .chart .fallback { padding: 24px; color: var(--muted); }
-
-  /* historia */
-  .hist-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; }
-  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
-  .filters button { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px;
-                    padding: 3px 12px; font: inherit; font-size: 13px; cursor: pointer; }
-  .filters button[aria-pressed="true"] { color: var(--text); border-color: var(--steel); }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 8px; border-bottom: 1px solid var(--line); }
-  td { padding: 9px 8px; border-bottom: 1px solid rgba(35, 48, 68, .6); }
-  td.num, th.num { text-align: right; }
+  .hist-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+  .hist-head h2 { margin: 0; }
+  .stats { margin-bottom: 18px; }
   .table-scroll { max-height: 520px; overflow: auto; }
   .empty { color: var(--muted); padding: 24px 8px; }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line);
-           border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 18px; }
-  .stats div { background: var(--ink); padding: 12px 14px; }
-  .stats .v { font-size: 17px; font-weight: 500; }
-  .stats .k { font-size: 12px; color: var(--muted); }
 
-  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; max-width: 80ch; }
-
-  @media (max-width: 760px) {
-    .wrap { padding: 20px 16px 48px; }
-    .coin { grid-template-columns: 1fr auto; gap: 10px 16px; }
-    .track { grid-column: 1 / -1; order: 3; }
-    .side { grid-column: 1 / -1; order: 4; }
-    .chart { height: 340px; }
-    .hide-sm { display: none; }
+  @media (max-width: 860px) {
+    .main { grid-template-columns: 1fr; }
+    .chart { height: 360px; }
+    .pairs .list { height: auto; max-height: 260px; }
   }
-  @media (prefers-reduced-motion: reduce) { .marker { transition: none; } }
-
-  /* strategie */
-  :root { --s1: #3987e5; --s2: #d95926; --s3: #199e70; }
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-  .seg button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; padding: 5px 14px; cursor: pointer; }
-  .seg button + button { border-left: 1px solid var(--line); }
-  .seg button[aria-pressed="true"] { color: var(--text); background: rgba(111, 163, 247, .1); }
-  .strat-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 28px; }
-  .strat-bar .desc { color: var(--muted); font-size: 13px; }
-  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-  .sec-head h2 { margin: 0; }
-  .more { background: none; border: 0; color: var(--steel); font: inherit; font-size: 13px; padding: 10px 8px; cursor: pointer; }
-  .tick-add { position: absolute; top: 4px; width: 2px; height: 26px; margin-left: -1px; background: var(--muted); opacity: .7; }
-
-  /* wykres portfela */
-  #pf { position: relative; height: 100%; }
-  #pf svg { display: block; width: 100%; height: 100%; }
-  #pf .axis { fill: var(--muted); font-size: 11px; }
-  #pf .lbl { fill: var(--text); font-size: 12px; }
-  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--muted); padding: 12px 16px 0; }
-  .legend b { color: var(--text); font-weight: 500; }
-  .tip { position: absolute; pointer-events: none; background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius);
-         padding: 8px 10px; font-size: 12px; min-width: 170px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,.35); }
-  .tip .t { color: var(--muted); margin-bottom: 4px; }
-  .tip div.r { display: flex; justify-content: space-between; gap: 14px; }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="topbar">
+    <a class="brand" href="/">Trading bot</a>
+    <nav class="nav"><a href="/" aria-current="page">Live</a><a href="/research">Research</a></nav>
+  </div>
+
   <header>
     <div>
-      <h1>Trading bot</h1>
       <div class="status"><span class="dot off" id="dot"></span><span id="status">Connecting to the bot</span></div>
+      <div class="strat-row">
+        <div class="seg" id="strats" role="group" aria-label="Strategy"></div>
+        <span class="desc" id="strat-desc"></span>
+      </div>
     </div>
-    <div class="summary">
+    <div class="metrics">
       <div class="metric"><div class="v" id="m-capital">–</div><div class="k">Paper capital, USD</div></div>
       <div class="metric"><div class="v" id="m-pnl">–</div><div class="k">Closed trades, net USD</div></div>
       <div class="metric"><div class="v" id="m-win">–</div><div class="k">Winning trades</div></div>
@@ -150,27 +69,21 @@
     </div>
   </header>
 
-  <div class="strat-bar">
-    <div class="seg" id="strats" role="group" aria-label="Strategy"></div>
-    <span class="desc" id="strat-desc"></span>
-  </div>
-
-  <section>
-    <div class="sec-head">
-      <h2 id="chart-title">Chart</h2>
-      <div class="seg" role="group" aria-label="Chart view">
-        <button id="v-coin" aria-pressed="true">Coin</button><button id="v-pf" aria-pressed="false">Portfolio</button>
+  <div class="main">
+    <div>
+      <div class="chart-head">
+        <h2 id="chart-title">SOL/USDT, 15 minutes</h2>
+        <div class="seg" role="group" aria-label="Chart view">
+          <button id="v-coin" aria-pressed="true">Coin</button><button id="v-pf" aria-pressed="false">Portfolio</button>
+        </div>
       </div>
+      <div class="chart panel" id="chart"><div class="fallback">Loading chart</div></div>
     </div>
-    <div class="chart" id="chart"><div class="fallback">Loading chart</div></div>
-  </section>
-
-  <section>
-    <h2>Distance to entry</h2>
-    <p class="note" id="coins-note"></p>
-    <div class="coins" id="coins"></div>
-    <button class="more" id="more" hidden></button>
-  </section>
+    <div class="pairs">
+      <h2>Watched pairs</h2>
+      <div class="list panel" id="pairs"></div>
+    </div>
+  </div>
 
   <section>
     <div class="hist-head">
@@ -187,39 +100,29 @@
   </section>
 
   <footer>
-    Paper trading on OKX spot prices, 100 USD per position and strategy, results shown after 0.05% fee per side.
+    Paper trading on OKX spot prices, 100 USD per position and strategy, results after a 0.05% fee per side.
     Each strategy holds its own independent position on every coin. Trades from before the multi-strategy version
-    were recorded without fees; their net result is estimated. Research and backtests are in the
-    <a href="https://github.com/IgorLejzak/trading-bot">GitHub repository</a>.
+    were logged without fees; their net result is estimated. How the strategies were chosen, and a backtest you can
+    run yourself, are on the <a href="/research">Research</a> page.
   </footer>
 </div>
 
+<script src="/static/linechart.js"></script>
 <script>
 const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)"];
-let state = null, history = [], strat = "original", selected = null, pairFilter = "All", lastOk = 0;
-let view = "coin", showAll = false, range = "all";
+let state = null, history = [], strat = "original", selected = "SOL/USDT", pairFilter = "All", lastOk = 0;
+let view = "coin", range = "all";
 
 const fmt = (v, d = 2) => Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 const priceFmt = v => v >= 1000 ? fmt(v, 1) : v >= 10 ? fmt(v, 2) : v >= 0.1 ? fmt(v, 4) : Number(v).toPrecision(4);
 const signed = v => (v > 0 ? "+" : "") + fmt(v);
 const short = p => p.replace("/USDT", "");
-const tvSymbol = pair => "OKX:" + pair.replace("/", "");
 const strategies = () => Object.entries(state?.strategies || {});
 const S = () => state?.strategies?.[strat];
 const colorOf = key => COLORS[Math.max(0, strategies().findIndex(([k]) => k === key)) % COLORS.length];
 const stratHist = () => history.filter(h => (h.strategy || "original") === strat);
 const capStart = () => state?.capital_start ?? 1000;
-
-function posInfo(p, s) {
-  const usd = p.wejscia.reduce((a, w) => a + w.usd, 0);
-  const qty = p.wejscia.reduce((a, w) => a + w.usd / w.cena, 0);
-  const avg = usd / qty, sign = p.typ === "long" ? 1 : -1, n = p.wejscia.length;
-  const tp = avg * (1 + sign * s.tp);
-  const full = n >= s.weights.length;
-  const sl = full ? p.wejscia[n - 1].cena * (1 - sign * s.sl) : null;
-  const add = full ? null : p.wejscia[0].cena * (1 - sign * s.adds[n - 1]);
-  return { avg, tp, sl, add, n, usd, sign };
-}
+const ts = t => Date.parse(t.replace(" ", "T") + "Z");
 
 function renderStrats() {
   const box = document.getElementById("strats");
@@ -229,68 +132,18 @@ function renderStrats() {
   document.getElementById("strat-desc").textContent = S()?.desc || "";
 }
 
-function coinRows() {
-  const s = S();
-  return Object.entries(state?.coins || {}).map(([pair, c]) => {
-    const longLvl = c.bb_lower * (1 - s.bb), shortLvl = c.bb_upper * (1 + s.bb);
-    const toLong = (c.price / longLvl - 1) * 100, toShort = (shortLvl / c.price - 1) * 100;
-    const p = c.positions?.[strat];
-    return { pair, c, longLvl, shortLvl, toLong, toShort, p, dist: p ? -1 : Math.max(0, Math.min(toLong, toShort)) };
-  }).sort((a, b) => a.dist - b.dist);
-}
-
-function renderCoins() {
-  if (!state || !S()) return;
-  const s = S();
-  document.getElementById("coins-note").textContent =
-    `${s.name}: long ${fmt(s.bb * 100, 1)}% below the lower Bollinger Band, short ${fmt(s.bb * 100, 1)}% above the upper one` +
-    (s.stoch ? ", with StochRSI confirming." : ", no StochRSI filter.") +
-    " Open positions first, then the coins closest to an entry. Select a coin to see its chart.";
-  const rows = coinRows();
-  if (!selected || !state.coins[selected]) selected = rows[0]?.pair || null;
-  const visible = showAll ? rows : rows.slice(0, 8);
-  const more = document.getElementById("more");
-  more.hidden = rows.length <= 8;
-  more.textContent = showAll ? "Show fewer" : `Show all ${rows.length} coins`;
-  more.onclick = () => { showAll = !showAll; renderCoins(); };
-
-  document.getElementById("coins").innerHTML = visible.map(({ pair, c, longLvl, shortLvl, toLong, toShort, p }) => {
-    let lo = longLvl * 0.996, hi = shortLvl * 1.004;
-    const info = p ? posInfo(p, s) : null;
-    if (info) for (const v of [info.avg, info.tp, info.sl, info.add, c.price]) if (v) { lo = Math.min(lo, v * 0.998); hi = Math.max(hi, v * 1.002); }
-    const span = hi - lo, pct = v => Math.min(100, Math.max(0, (v - lo) / span * 100));
-    const near = toLong < 0.5 ? "near-long" : toShort < 0.5 ? "near-short" : "";
-    let side;
-    if (info) {
-      const isLong = p.typ === "long";
-      const pnl = (isLong ? c.price / info.avg - 1 : 1 - c.price / info.avg) * 100;
-      side = `<span class="${isLong ? "pos-long" : "pos-short"}">${isLong ? "Long" : "Short"} from ${priceFmt(info.avg)}${info.n > 1 ? ` (avg of ${info.n})` : ""}</span><br>
-              <b>${signed(pnl)}%</b> now, TP ${priceFmt(info.tp)}, ` + (info.sl ? `SL ${priceFmt(info.sl)}` : `add at ${priceFmt(info.add)}`);
-    } else {
-      side = `No position<br><b>${fmt(Math.max(toLong, 0))}%</b> to long, <b>${fmt(Math.max(toShort, 0))}%</b> to short`;
-    }
-    return `<button class="coin" aria-pressed="${pair === selected}" data-pair="${pair}">
-      <div class="pair">${short(pair)}<small>StochRSI ${fmt(c.stoch_k, 0)} / ${fmt(c.stoch_d, 0)}</small></div>
-      <div class="price">${priceFmt(c.price)}</div>
-      <div>
-        <div class="track" aria-hidden="true">
-          <div class="rail"></div>
-          <div class="zone long" style="width:${pct(longLvl)}%"></div>
-          <div class="zone short" style="width:${100 - pct(shortLvl)}%"></div>
-          <div class="band" style="left:${pct(c.bb_lower)}%"></div>
-          <div class="band" style="left:${pct(c.bb_upper)}%"></div>
-          ${info ? `<div class="entry-tick" style="left:${pct(info.avg)}%"></div>` : ""}
-          ${info?.add ? `<div class="tick-add" style="left:${pct(info.add)}%"></div>` : ""}
-          <div class="marker ${near}" style="left:${pct(c.price)}%"></div>
-        </div>
-        <div class="scale"><span>long ${priceFmt(longLvl)}</span><span>bands ${priceFmt(c.bb_lower)} – ${priceFmt(c.bb_upper)}</span><span>short ${priceFmt(shortLvl)}</span></div>
-      </div>
-      <div class="side">${side}</div>
-    </button>`;
+function renderPairs() {
+  if (!state) return;
+  const coins = Object.entries(state.coins);
+  if (!state.coins[selected] && coins.length) selected = coins[0][0];
+  const box = document.getElementById("pairs");
+  box.innerHTML = coins.map(([pair, c]) => {
+    const open = Object.values(c.positions || {}).some(Boolean);
+    return `<button class="pair-btn" data-pair="${pair}" aria-pressed="${pair === selected && view === "coin"}">
+      <span class="n">${short(pair)}${open ? '<span class="open-dot" title="Open position"></span>' : ""}</span>
+      <span class="p">${priceFmt(c.price)}</span></button>`;
   }).join("");
-  document.querySelectorAll("#coins .coin").forEach(b => b.onclick = () => {
-    selected = b.dataset.pair; setView("coin"); renderCoins();
-  });
+  box.querySelectorAll(".pair-btn").forEach(b => b.onclick = () => { selected = b.dataset.pair; setView("coin"); });
 }
 
 function renderSummary() {
@@ -301,8 +154,7 @@ function renderSummary() {
   pnlEl.textContent = h.length ? signed(total) : "–";
   pnlEl.style.color = !h.length ? "" : total >= 0 ? "var(--up)" : "var(--down)";
   document.getElementById("m-win").textContent = h.length ? `${Math.round(wins / h.length * 100)}% of ${h.length}` : "–";
-  const open = Object.values(state?.coins || {}).filter(c => c.positions?.[strat]).length;
-  document.getElementById("m-open").textContent = state ? open : "–";
+  document.getElementById("m-open").textContent = state ? Object.values(state.coins).filter(c => c.positions?.[strat]).length : "–";
 }
 
 function renderHistory() {
@@ -330,16 +182,18 @@ function renderHistory() {
       <td class="num hide-sm">${priceFmt(x.entry)}</td><td class="num hide-sm">${priceFmt(x.close)}</td>
       <td class="num hide-sm">${x.fills || 1}</td>
       <td class="num" style="color:${x.pnl_net > 0 ? "var(--up)" : "var(--down)"}">${signed(x.pnl_net)}</td></tr>`).join("")
-    : `<tr><td colspan="7" class="empty">No closed trades for this strategy yet. They appear here as soon as it hits a take profit or a stop loss.</td></tr>`;
+    : `<tr><td colspan="7" class="empty">No closed trades for this strategy yet.</td></tr>`;
 }
 
-/* ---------- wykresy: coin (TradingView) / portfel (SVG) ---------- */
+/* ---------- wykres: coin (TradingView) / portfel (SVG) ---------- */
 let chartPair = null;
 function setView(v) {
   view = v;
   document.getElementById("v-coin").setAttribute("aria-pressed", v === "coin");
   document.getElementById("v-pf").setAttribute("aria-pressed", v === "pf");
-  if (v === "coin") { chartPair = null; loadChart(); } else renderPortfolio();
+  chartPair = null;
+  renderPairs();
+  v === "coin" ? loadChart() : renderPortfolio();
 }
 document.getElementById("v-coin").onclick = () => setView("coin");
 document.getElementById("v-pf").onclick = () => setView("pf");
@@ -351,7 +205,7 @@ function loadChart() {
   const box = document.getElementById("chart");
   box.innerHTML = '<div id="tv" style="height:100%"></div>';
   const make = () => new TradingView.widget({
-    container_id: "tv", autosize: true, symbol: tvSymbol(selected), interval: "15", timezone: "Etc/UTC",
+    container_id: "tv", autosize: true, symbol: "OKX:" + selected.replace("/", ""), interval: "15", timezone: "Etc/UTC",
     theme: "dark", style: "1", locale: "en", hide_side_toolbar: true, allow_symbol_change: false,
     backgroundColor: "#151f2c", gridColor: "rgba(35, 48, 68, 0.6)",
     studies: ["BB@tv-basicstudies", "StochasticRSI@tv-basicstudies"]
@@ -364,106 +218,41 @@ function loadChart() {
   document.head.appendChild(s);
 }
 
-const ts = t => Date.parse(t.replace(" ", "T") + "Z");
-function equitySeries() {
-  const now = Date.now();
-  return strategies().map(([k, s]) => {
-    const h = history.filter(x => (x.strategy || "original") === k);
-    if (!h.length) return { k, name: s.name, pts: [], color: colorOf(k) };
-    let eq = capStart();
-    const start = ts(h[0].opened || h[0].time);
-    const pts = [[start, eq], ...h.map(x => [ts(x.time), (eq += x.pnl_net), x])];
-    pts.push([now, eq]);
-    return { k, name: s.name, pts, color: colorOf(k) };
-  });
-}
-
 function renderPortfolio() {
   if (view !== "pf") return;
-  document.getElementById("chart-title").textContent = "Portfolio, paper capital since launch (net of fees)";
-  chartPair = null;
-  const box = document.getElementById("chart");
-  const series = equitySeries().filter(s => s.pts.length);
-  if (!series.length) { box.innerHTML = '<div class="fallback">No closed trades yet.</div>'; return; }
-  const lastV = s => s.pts[s.pts.length - 1][1];
-  const ranges = [["all", "All"], ["30", "30 days"], ["7", "7 days"]];
-  const legend = `<div class="legend"><span class="seg" style="margin-right:auto">${ranges.map(([k, l]) =>
-      `<button data-r="${k}" aria-pressed="${k === range}" style="padding:2px 10px">${l}</button>`).join("")}</span>${series.map(s => `<span><span class="swatch" style="background:${s.color}"></span>${s.name} <b>${fmt(lastV(s))}</b></span>`).join("")}</div>`;
-  box.innerHTML = legend + '<div id="pf" style="height:calc(100% - 42px)"><svg></svg><div class="tip"></div></div>';
-  const pf = document.getElementById("pf"), svg = pf.querySelector("svg"), tip = pf.querySelector(".tip");
-  const W = pf.clientWidth, H = pf.clientHeight, m = { l: 56, r: 128, t: 16, b: 28 };
-  box.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { range = b.dataset.r; renderPortfolio(); });
-  if (range !== "all") {   // przytnij do zakresu, zaczynając od wartości z chwili cięcia
-    const from = Date.now() - Number(range) * 864e5;
-    for (const s of series) {
-      const before = s.pts.filter(p => p[0] <= from);
-      s.pts = [...(before.length ? [[from, before[before.length - 1][1]]] : []), ...s.pts.filter(p => p[0] > from)];
+  document.getElementById("chart-title").textContent = "Portfolio: paper capital since launch, net of fees";
+  const now = Date.now(), from = range === "all" ? -Infinity : now - Number(range) * 864e5;
+  const series = strategies().map(([k, s]) => {
+    const h = history.filter(x => (x.strategy || "original") === k);
+    let eq = capStart(), pts = [];
+    if (h.length) {
+      pts = [[ts(h[0].opened || h[0].time), eq], ...h.map(x => [ts(x.time), (eq += x.pnl_net)])];
+      pts.push([now, eq]);
+      const before = pts.filter(p => p[0] <= from);
+      if (before.length) pts = [[from, before[before.length - 1][1]], ...pts.filter(p => p[0] > from)];
     }
-  }
-  const all = series.flatMap(s => s.pts);
-  const x0 = Math.min(...all.map(p => p[0])), x1 = Math.max(...all.map(p => p[0]));
-  let y0 = Math.min(capStart(), ...all.map(p => p[1])), y1 = Math.max(capStart(), ...all.map(p => p[1]));
-  const pad = (y1 - y0) * 0.08 || 5; y0 -= pad; y1 += pad;
-  const X = t => m.l + (t - x0) / ((x1 - x0) || 1) * (W - m.l - m.r);
-  const Y = v => m.t + (1 - (v - y0) / (y1 - y0)) * (H - m.t - m.b);
-  const step = niceStep((y1 - y0) / 5);
-  let grid = "";
-  for (let v = Math.ceil(y0 / step) * step; v <= y1; v += step)
-    grid += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1" ${Math.abs(v - capStart()) < 1e-9 ? "" : 'stroke-dasharray="2 4"'}/>
-             <text class="axis" x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${fmt(v, 0)}</text>`;
-  const months = [], spanD = (x1 - x0) / 864e5;
-  if (spanD < 45) {
-    const dd = new Date(x0); dd.setUTCHours(0, 0, 0, 0); dd.setUTCDate(dd.getUTCDate() + 1);
-    const ev = spanD > 14 ? 5 : spanD > 4 ? 1 : 1;
-    for (; dd.getTime() <= x1; dd.setUTCDate(dd.getUTCDate() + ev))
-      months.push(`<text class="axis" x="${X(dd.getTime())}" y="${H - 8}" text-anchor="middle">${dd.toLocaleString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}</text>`);
-  } else {
-  const d = new Date(x0); d.setUTCDate(1); d.setUTCHours(0, 0, 0, 0); d.setUTCMonth(d.getUTCMonth() + 1);
-  const span = (x1 - x0) / 864e5, every = span > 200 ? 2 : 1;
-  for (; d.getTime() <= x1; d.setUTCMonth(d.getUTCMonth() + every))
-    months.push(`<text class="axis" x="${X(d.getTime())}" y="${H - 8}" text-anchor="middle">${d.toLocaleString("en-US", { month: "short", timeZone: "UTC" })}${d.getUTCMonth() === 0 ? " " + d.getUTCFullYear() : ""}</text>`);
-  }
-  // linie schodkowe: kapitał zmienia się tylko przy zamknięciu transakcji
-  const path = s => s.pts.map((p, i) => i ? `H${X(p[0]).toFixed(1)}V${Y(p[1]).toFixed(1)}` : `M${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("");
-  // etykiety końcowe bez nachodzenia
-  const ends = series.map(s => ({ s, y: Y(lastV(s)) })).sort((a, b) => a.y - b.y);
-  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 16) ends[i].y = ends[i - 1].y + 16;
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.innerHTML = grid + months.join("") +
-    series.map(s => `<path d="${path(s)}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`).join("") +
-    ends.map(({ s, y }) => `<text class="lbl" x="${W - m.r + 8}" y="${y + 4}">${s.name.length > 16 ? s.name.slice(0, 15) + "…" : s.name}</text>`).join("") +
-    `<line id="xh" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>
-     <g id="dots"></g>
-     <rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent" id="hit"/>`;
-  const hit = svg.querySelector("#hit"), xh = svg.querySelector("#xh"), dots = svg.querySelector("#dots");
-  const valAt = (s, t) => { let v = null, last = null; for (const p of s.pts) { if (p[0] > t) break; v = p[1]; if (p[2]) last = p[2]; } return { v, last }; };
-  hit.onmousemove = e => {
-    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
-    const t = x0 + (px - m.l) / (W - m.l - m.r) * (x1 - x0);
-    xh.setAttribute("x1", px); xh.setAttribute("x2", px); xh.setAttribute("visibility", "visible");
-    const vals = series.map(s => ({ s, ...valAt(s, t) }));
-    dots.innerHTML = vals.filter(o => o.v != null).map(o => `<circle cx="${px}" cy="${Y(o.v)}" r="4" fill="${o.s.color}" stroke="var(--panel)" stroke-width="2"/>`).join("");
-    tip.innerHTML = `<div class="t">${new Date(t).toISOString().slice(0, 16).replace("T", " ")} UTC</div>` +
-      vals.map(o => `<div class="r"><span><span class="swatch" style="background:${o.s.color}"></span>${o.s.name}</span><b>${o.v == null ? "not started" : fmt(o.v)}</b></div>`).join("");
-    tip.style.display = "block";
-    const tx = px * r.width / W;
-    tip.style.left = (tx > r.width / 2 ? tx - tip.offsetWidth - 12 : tx + 12) + "px";
-    tip.style.top = "12px";
-  };
-  hit.onmouseleave = () => { tip.style.display = "none"; xh.setAttribute("visibility", "hidden"); dots.innerHTML = ""; };
+    return { name: s.name, color: colorOf(k), pts };
+  });
+  const box = document.getElementById("chart");
+  const ranges = [["all", "All"], ["30", "30 days"], ["7", "7 days"]];
+  box.innerHTML = `<div class="pf-bar">
+      <div class="seg">${ranges.map(([k, l]) => `<button data-r="${k}" aria-pressed="${k === range}">${l}</button>`).join("")}</div>
+      <div class="legend">${series.filter(s => s.pts.length).map(s => `<span><span class="swatch" style="background:${s.color}"></span>${s.name} <b>${fmt(s.pts[s.pts.length - 1][1])}</b></span>`).join("")}</div>
+    </div><div class="lc" id="pf" style="height:calc(100% - 44px)"></div>`;
+  box.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { range = b.dataset.r; renderPortfolio(); });
+  lineChart(document.getElementById("pf"), series, { base: capStart() });
 }
-function niceStep(raw) { const p = 10 ** Math.floor(Math.log10(raw)), n = raw / p; return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * p; }
 let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderPortfolio, 150); });
 
 /* ---------- dane ---------- */
-function renderAll() { renderStrats(); renderCoins(); renderSummary(); renderHistory(); view === "coin" ? loadChart() : renderPortfolio(); }
+function renderAll() { renderStrats(); renderPairs(); renderSummary(); renderHistory(); view === "coin" ? loadChart() : renderPortfolio(); }
 
 function setStatus() {
   const age = Math.round((Date.now() - lastOk) / 1000);
   const ok = lastOk && age < 15;
   document.getElementById("dot").className = "dot" + (ok ? "" : " off");
   document.getElementById("status").textContent = !lastOk ? "Connecting to the bot"
-    : ok ? `Live, paper trading on OKX, ${Object.keys(state.coins).length} coins, ${strategies().length} strategies, updated ${age} s ago`
+    : ok ? `Live, paper trading on OKX, ${Object.keys(state.coins).length} pairs, updated ${age} s ago`
     : `No response from the bot for ${age} s. Showing the last known state.`;
 }
 async function pollState() {
@@ -473,7 +262,7 @@ async function pollState() {
     const first = !state;
     state = await r.json(); lastOk = Date.now();
     if (!state.strategies[strat]) strat = Object.keys(state.strategies)[0];
-    if (first) renderAll(); else { renderCoins(); renderSummary(); loadChart(); }
+    if (first) renderAll(); else { renderPairs(); renderSummary(); }
   } catch (e) { /* status shows the age of the last good update */ }
   setStatus();
 }
@@ -484,6 +273,7 @@ async function pollHistory() {
   } catch (e) {}
 }
 
+loadChart();          // SOL od razu, nie czekając na API
 renderHistory();
 pollState(); pollHistory();
 setInterval(pollState, 2000);

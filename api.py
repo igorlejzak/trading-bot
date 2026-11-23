@@ -19,7 +19,9 @@ import ccxt
 import pandas as pd
 import requests
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from ta.momentum import StochRSIIndicator
 from ta.volatility import BollingerBands
 
@@ -52,7 +54,11 @@ HEADERS = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.
 API = f"https://api.github.com/repos/{GITHUB_REPO}"
 NAGLOWEK = "Time,Pair,Direction,Entry,Close,PnL,PnL_net,Strategy,Opened,Fills"
 
-app = FastAPI()
+app = FastAPI(docs_url="/api/docs", redoc_url=None)   # /docs to wykresy z badań
+app.add_middleware(GZipMiddleware, minimum_size=1000)          # dane do backtestu: ~3 MB -> ~1 MB
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/docs", StaticFiles(directory="docs", check_dir=False), name="docs")         # wykresy do strony Research
+app.mount("/data", StaticFiles(directory="data", check_dir=False), name="data")         # świeczki 15m z research/export_web.py
 exchange = ccxt.okx({"enableRateLimit": True})
 
 
@@ -303,3 +309,8 @@ def get_historia():
 @app.get("/")
 def index():
     return FileResponse("index.html")
+
+
+@app.get("/research")
+def research():
+    return FileResponse("../research/research.html")
