@@ -1,8 +1,9 @@
-"""Bot paper-tradingowy: wiele coinów i kilka strategii naraz, żeby zebrać jak najwięcej danych live.
+"""Bot paper-tradingowy: oryginalne zasady (BB 1% + StochRSI, TP 1%, SL 3%) na BTC, ETH, SOL i XRP.
 
-Każda strategia ma na każdym coinie własną, niezależną pozycję (100 USD). Wynik zapisywany jest brutto
-i netto (po opłacie 0.05% za każdą stronę, jak w backteście). Historia i otwarte pozycje trafiają na
-osobną gałąź `bot-data` na GitHubie: main zostaje czysty, a zapis nie wywołuje redeployu na Railway.
+To pokaz, jak działa bot live - nowe ustawienia sprawdzamy w backteście (strona Research), nie tutaj.
+Wynik zapisywany jest brutto i netto (po opłacie 0.05% za każdą stronę, jak w backteście). Historia
+i otwarte pozycje trafiają na osobną gałąź `bot-data` na GitHubie: main zostaje czysty, a zapis nie
+wywołuje redeployu na Railway.
 
 Pętla co ~2 s: JEDNO zapytanie o ceny wszystkich coinów (fetch_tickers). Zamknięte świeczki 15m są
 w pamięci i dociągane tylko wtedy, gdy zamknie się nowa. Wskaźniki liczone są na zamkniętych świeczkach
@@ -27,19 +28,12 @@ from ta.volatility import BollingerBands
 
 # ---------------------------------------------------------------- ustawienia
 STRATEGIE = {
-    # zasady, na których bot chodził od czerwca - zostają, żeby historia była ciągła
+    # zasady, na których bot chodzi od czerwca. Kod obsługuje więcej strategii naraz (klucz w historii
+    # i pozycjach), ale live zostaje przy tej jednej - kolejne warianty sprawdzamy w backteście.
     "original": {"name": "Original rules", "desc": "1% beyond the band + StochRSI, TP 1%, SL 3%",
                  "bb": 0.010, "stoch": True, "tp": 0.010, "sl": 0.030, "wagi": [1.0], "odstepy": []},
-    # najlepiej przenosząca się na inne coiny w badaniu (cross_coin.py)
-    "1x": {"name": "1 entry, BB 1.9%", "desc": "1.9% beyond the band, TP 2%, SL 4.6%",
-           "bb": 0.019, "stoch": False, "tp": 0.020, "sl": 0.046, "wagi": [1.0], "odstepy": []},
-    # najlepsza na SOL (najgładsza krzywa), ale słaba na ETH - live na wielu coinach to rozstrzygnie
-    "2x": {"name": "2 entries, averaging", "desc": "1.5% beyond the band + StochRSI, add 4% further, 30/70, "
-                                                   "TP 2.2% from average, SL 2% after the add",
-           "bb": 0.015, "stoch": True, "tp": 0.022, "sl": 0.020, "wagi": [0.3, 0.7], "odstepy": [0.04]},
 }
-CHCIANE_COINY = ["BTC", "ETH", "SOL", "XRP", "ADA", "BNB", "HYPE", "PEPE", "LINK", "DOT", "DOGE", "AVAX",
-                 "ALGO", "SUI", "LTC", "XLM", "UNI", "NEAR", "AAVE", "TAO", "ONDO"]
+CHCIANE_COINY = ["BTC", "ETH", "SOL", "XRP"]
 ROZMIAR = 100.0           # USD na pozycję (przy 2 wejściach: suma obu)
 FEE = 0.0005              # OKX taker, za każdą stronę
 STOCH_HI, STOCH_LO = 80, 20
@@ -144,8 +138,17 @@ def wczytaj_stan_z_github():
 
 
 # ---------------------------------------------------------------- stan w pamięci
-historia, pozycje, DANE_OK = wczytaj_stan_z_github()   # pozycje: {"1x|SOL/USDT": {...}}
+historia, pozycje, DANE_OK = wczytaj_stan_z_github()   # pozycje: {"original|SOL/USDT": {...}}
 zmiany = threading.Event()                              # coś się zmieniło -> zapisz na GitHub
+# pozycje strategii albo coinów, których bot już nie prowadzi (testy z listopada) - usuwamy z pliku.
+# Historia zostaje w całości; API pokazuje tylko obecną strategię.
+_stare = [k for k in pozycje if k.split("|")[0] not in STRATEGIE
+          or k.split("|")[1].split("/")[0] not in CHCIANE_COINY]
+for k in _stare:
+    del pozycje[k]
+if _stare:
+    print(f"Usuwam {len(_stare)} otwartych pozycji spoza obecnych zasad: {', '.join(_stare)}")
+    zmiany.set()
 swieczki = {}                                           # coin -> DataFrame zamkniętych świeczek 15m
 STAN = {"updated": None, "strategies": {}, "coins": {}, "skipped": [], "capital_start": KAPITAL_START, "fee": FEE}
 lock = threading.Lock()
@@ -303,7 +306,7 @@ def get_stan():
 @app.get("/api/historia")
 def get_historia():
     with lock:
-        return list(historia)
+        return [h for h in historia if h.get("strategy", "original") in STRATEGIE]
 
 
 @app.get("/")

@@ -82,12 +82,13 @@
     return end;
   }
 
-  function signals(D, S, bb, stoch) {
-    const idx = [], side = [], price = [];
+  // dir: "both" | "long" | "short". Przy "both" short ma pierwszeństwo, jak w bocie.
+  function signals(D, S, bb, stoch, dir = "both") {
+    const idx = [], side = [], price = [], doS = dir !== "long", doL = dir !== "short";
     for (let t = 1; t < D.c.length; t++) {
-      if (condShort(S, t, D.h[t], bb, stoch)) {
+      if (doS && condShort(S, t, D.h[t], bb, stoch)) {
         idx.push(t); side.push(-1); price.push(firstPrice(p => condShort(S, t, p, bb, stoch), D.o[t], D.h[t]));
-      } else if (condLong(S, t, D.l[t], bb, stoch)) {
+      } else if (doL && condLong(S, t, D.l[t], bb, stoch)) {
         idx.push(t); side.push(1); price.push(firstPrice(p => condLong(S, t, p, bb, stoch), D.o[t], D.l[t]));
       }
     }
@@ -99,110 +100,146 @@
     return -1;
   }
 
-  // simulate_avg: zwraca transakcje {i, j, side, gross, filled, fills, win}
+  // Jedna pozycja od sygnału (i, side, p1) do wyjścia. null, gdy pozycja jest otwarta do końca danych.
+  function simulateOne(hi, lo, i, side, p1, tp, sl, weights, dists) {
+    const nW = weights.length;
+    let filled = weights[0], qty = weights[0] / p1, lastP = p1, k = 1, j = i, allowTp = false;
+    for (;;) {
+      const avg = filled / qty;
+      let exitP = null, win = false;
+      if (side === 1) {
+        const tpL = avg * (1 + tp);
+        if (k < nW) {
+          const nxt = p1 * (1 - dists[k - 1]);
+          if (lo[j] <= nxt) { filled += weights[k]; qty += weights[k] / nxt; lastP = nxt; k++; allowTp = false; continue; }
+          if (allowTp && hi[j] >= tpL) { exitP = tpL; win = true; }
+          else j = firstHit(hi, lo, j + 1, tpL, nxt);
+        } else {
+          const slL = lastP * (1 - sl);
+          if (lo[j] <= slL) exitP = slL;
+          else if (allowTp && hi[j] >= tpL) { exitP = tpL; win = true; }
+          else j = firstHit(hi, lo, j + 1, tpL, slL);
+        }
+      } else {
+        const tpL = avg * (1 - tp);
+        if (k < nW) {
+          const nxt = p1 * (1 + dists[k - 1]);
+          if (hi[j] >= nxt) { filled += weights[k]; qty += weights[k] / nxt; lastP = nxt; k++; allowTp = false; continue; }
+          if (allowTp && lo[j] <= tpL) { exitP = tpL; win = true; }
+          else j = firstHit(hi, lo, j + 1, nxt, tpL);
+        } else {
+          const slL = lastP * (1 + sl);
+          if (hi[j] >= slL) exitP = slL;
+          else if (allowTp && lo[j] <= tpL) { exitP = tpL; win = true; }
+          else j = firstHit(hi, lo, j + 1, slL, tpL);
+        }
+      }
+      if (exitP !== null) {
+        const gross = side === 1 ? qty * exitP - filled : filled - qty * exitP;
+        return { i, j, side, entry: p1, avg: filled / qty, exit: exitP, gross, filled, fills: k, win };
+      }
+      if (j === -1) return null;          // pozycja otwarta do końca danych
+      allowTp = true;
+    }
+  }
+
+  // simulate_avg dla jednego coina: jedna pozycja naraz, następny sygnał dopiero po wyjściu.
   function simulate(hi, lo, sig, tp, sl, weights, dists) {
-    const out = [], nW = weights.length;
+    const out = [];
     let s = 0;
     while (s < sig.idx.length) {
-      const i = sig.idx[s], side = sig.side[s], p1 = sig.price[s];
-      let filled = weights[0], qty = weights[0] / p1, lastP = p1, k = 1, j = i, allowTp = false, exitP = null, win = false;
-      for (;;) {
-        const avg = filled / qty;
-        if (side === 1) {
-          const tpL = avg * (1 + tp);
-          if (k < nW) {
-            const nxt = p1 * (1 - dists[k - 1]);
-            if (lo[j] <= nxt) { filled += weights[k]; qty += weights[k] / nxt; lastP = nxt; k++; allowTp = false; continue; }
-            if (allowTp && hi[j] >= tpL) { exitP = tpL; win = true; break; }
-            j = firstHit(hi, lo, j + 1, tpL, nxt);
-          } else {
-            const slL = lastP * (1 - sl);
-            if (lo[j] <= slL) { exitP = slL; win = false; break; }
-            if (allowTp && hi[j] >= tpL) { exitP = tpL; win = true; break; }
-            j = firstHit(hi, lo, j + 1, tpL, slL);
-          }
-        } else {
-          const tpL = avg * (1 - tp);
-          if (k < nW) {
-            const nxt = p1 * (1 + dists[k - 1]);
-            if (hi[j] >= nxt) { filled += weights[k]; qty += weights[k] / nxt; lastP = nxt; k++; allowTp = false; continue; }
-            if (allowTp && lo[j] <= tpL) { exitP = tpL; win = true; break; }
-            j = firstHit(hi, lo, j + 1, nxt, tpL);
-          } else {
-            const slL = lastP * (1 + sl);
-            if (hi[j] >= slL) { exitP = slL; win = false; break; }
-            if (allowTp && lo[j] <= tpL) { exitP = tpL; win = true; break; }
-            j = firstHit(hi, lo, j + 1, slL, tpL);
-          }
-        }
-        if (j === -1) break;            // pozycja otwarta do końca danych - pomijamy
-        allowTp = true;
-      }
-      if (exitP === null) break;
-      const gross = side === 1 ? qty * exitP - filled : filled - qty * exitP;
-      out.push({ i, j, side, entry: p1, avg: filled / qty, exit: exitP, gross, filled, fills: k, win });
-      while (s < sig.idx.length && sig.idx[s] <= j) s++;   // searchsorted(..., j, side="right")
+      const t = simulateOne(hi, lo, sig.idx[s], sig.side[s], sig.price[s], tp, sl, weights, dists);
+      if (!t) break;
+      out.push(t);
+      while (s < sig.idx.length && sig.idx[s] <= t.j) s++;   // searchsorted(..., j, side="right")
     }
     return out;
   }
 
-  function summarize(trades, D, fee, capital) {
-    const net = trades.map(t => (t.gross - 2 * fee * t.filled) * capital);
-    let eq = 0, peak = 0, maxDd = 0;
-    const curve = [[D.t0 + (trades.length ? trades[0].i : 0) * D.step, 0]];
-    trades.forEach((t, n) => {
-      eq += net[n]; peak = Math.max(peak, eq); maxDd = Math.min(maxDd, eq - peak);
-      curve.push([D.t0 + t.j * D.step, eq]);
-    });
-    const wins = net.filter(v => v > 0), losses = net.filter(v => v <= 0);
-    const years = {};
-    trades.forEach((t, n) => {
-      const y = new Date(D.t0 + t.j * D.step).getUTCFullYear();
-      (years[y] ||= { pnl: 0, trades: 0 }); years[y].pnl += net[n]; years[y].trades++;
-    });
+  const stateCache = new WeakMap();
+  const sigCache = new WeakMap();
+  function coinSignals(D, bb, stoch, dir) {
+    if (!stateCache.has(D)) stateCache.set(D, prepareState(D.c));
+    if (!sigCache.has(D)) sigCache.set(D, {});
+    const key = `${bb}|${stoch}|${dir}`, c = sigCache.get(D);
+    return c[key] ||= signals(D, stateCache.get(D), bb, stoch, dir);
+  }
+  const idxAt = (D, ms) => Math.ceil((ms - D.t0) / D.step);
+
+  // Portfel: wiele coinów, wspólny kapitał. Każdy coin ma najwyżej jedną pozycję naraz.
+  // Przy pierwszym wejściu rezerwujemy całą kwotę pozycji (suma wszystkich wejść), żeby dokładki zawsze
+  // miały pokrycie. Sygnał, na który nie ma wolnego kapitału, jest pomijany (liczymy takie przypadki).
+  // P: {bb, stoch, dir, tp, sl, amounts:[USD na wejście], dists, fee, capital, from, to (ms)}
+  function portfolio(coins, P) {
+    const size = P.amounts.reduce((a, b) => a + b, 0), weights = P.amounts.map(a => a / size);
+    const cands = [], per = {};
+    for (const { name, D } of coins) {
+      const sig = coinSignals(D, P.bb, P.stoch, P.dir);
+      const from = Math.max(1, idxAt(D, P.from ?? D.t0)), to = Math.min(D.c.length, P.to == null || P.to === Infinity ? D.c.length : idxAt(D, P.to));
+      const hi = D.h.subarray(0, to), lo = D.l.subarray(0, to);
+      per[name] = { name, D, hi, lo, from, to, busy: -1, trades: 0, wins: 0, pnl: 0, signals: 0, skipped: 0 };
+      sig.idx.forEach((t, n) => { if (t >= from && t < to) cands.push({ name, t, ms: D.t0 + t * D.step, side: sig.side[n], price: sig.price[n] }); });
+    }
+    cands.sort((a, b) => a.ms - b.ms);
+
+    let cash = P.capital, open = [], maxOpen = 0, skipped = 0;
+    const closed = [], openAtEnd = [];
+    const release = ms => {
+      open = open.filter(o => { if (o.exitMs < ms) { cash += size + o.pnl; return false; } return true; });
+    };
+    for (const c of cands) {
+      const st = per[c.name];
+      if (c.t <= st.busy) continue;                      // ten coin ma jeszcze otwartą pozycję
+      st.signals++;
+      release(c.ms);
+      if (cash < size - 1e-9) { skipped++; st.skipped++; continue; }
+      const tr = simulateOne(st.hi, st.lo, c.t, c.side, c.price, P.tp, P.sl, weights, P.dists);
+      if (!tr) { st.busy = Infinity; openAtEnd.push(c); cash -= size; continue; }
+      const pnl = (tr.gross - 2 * P.fee * tr.filled) * size;
+      const rec = { ...tr, coin: c.name, entryMs: c.ms, exitMs: st.D.t0 + tr.j * st.D.step, pnl };
+      st.busy = tr.j; st.trades++; st.pnl += pnl; if (pnl > 0) st.wins++;
+      cash -= size; open.push(rec); closed.push(rec);
+      maxOpen = Math.max(maxOpen, open.length + openAtEnd.length);
+    }
+
+    // krzywa kapitału: kapitał startowy + zrealizowany wynik, w chwilach zamknięcia pozycji
+    closed.sort((a, b) => a.exitMs - b.exitMs);
+    const startMs = cands.length ? cands[0].ms : Math.min(...coins.map(x => x.D.t0));
+    let eq = P.capital, peak = P.capital, maxDd = 0, maxDdPct = 0;
+    const curve = [[startMs, eq]], years = {};
+    for (const t of closed) {
+      eq += t.pnl; peak = Math.max(peak, eq);
+      maxDd = Math.min(maxDd, eq - peak); maxDdPct = Math.min(maxDdPct, (eq - peak) / peak);
+      curve.push([t.exitMs, eq]);
+      const y = new Date(t.exitMs).getUTCFullYear();
+      (years[y] ||= { pnl: 0, trades: 0 }); years[y].pnl += t.pnl; years[y].trades++;
+    }
+    const wins = closed.filter(t => t.pnl > 0), losses = closed.filter(t => t.pnl <= 0);
+    const sum = a => a.reduce((s, t) => s + t.pnl, 0);
+
+    // losowe wejścia z tymi samymi zasadami wyjścia, każdy coin osobno: średni wynik na transakcję
+    let rN = 0, rPnl = 0, rWins = 0;
+    for (const st of Object.values(per)) {
+      for (let seed = 1; seed <= 2; seed++) {
+        let x = (seed * 2654435761 + st.name.length * 97) % 4294967296;
+        const rnd = () => (x = (x * 1664525 + 1013904223) % 4294967296) / 4294967296;
+        const idx = [], side = [], price = [];
+        for (let t = st.from; t < st.to; t++) if (rnd() < 1 / 3) { idx.push(t); side.push(P.dir === "long" ? 1 : P.dir === "short" ? -1 : (rnd() < .5 ? 1 : -1)); price.push(st.D.o[t]); }
+        for (const tr of simulate(st.hi, st.lo, { idx, side, price }, P.tp, P.sl, weights, P.dists)) {
+          const v = (tr.gross - 2 * P.fee * tr.filled) * size; rN++; rPnl += v; if (v > 0) rWins++;
+        }
+      }
+    }
+
     return {
-      trades: trades.length, wins: wins.length, net: eq, maxDd,
-      avgWin: wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : null,
-      avgLoss: losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : null,
-      avgFills: trades.length ? trades.reduce((a, t) => a + t.fills, 0) / trades.length : 0,
-      curve, years, netList: net,
+      size, trades: closed.length, wins: wins.length, net: eq - P.capital, end: eq, maxDd, maxDdPct, curve, years,
+      avgWin: wins.length ? sum(wins) / wins.length : null, avgLoss: losses.length ? sum(losses) / losses.length : null,
+      avgFills: closed.length ? closed.reduce((a, t) => a + t.fills, 0) / closed.length : 0,
+      maxOpen, skipped, openAtEnd: openAtEnd.length, list: closed, perCoin: Object.values(per),
+      random: { perTrade: rN ? rPnl / rN : 0, winRate: rN ? rWins / rN : 0 },
     };
   }
 
-  // Losowe wejścia z TYMI SAMYMI zasadami wyjścia: punkt odniesienia "czy sygnał w ogóle coś daje".
-  function randomBenchmark(D, tp, sl, weights, dists, fee, capital, from, to, seeds = 3) {
-    const res = [];
-    for (let seed = 1; seed <= seeds; seed++) {
-      let x = seed * 2654435761 % 4294967296;
-      const rnd = () => (x = (x * 1664525 + 1013904223) % 4294967296) / 4294967296;
-      const idx = [], side = [], price = [];
-      for (let t = from; t < to; t++) if (rnd() < 1 / 3) { idx.push(t); side.push(rnd() < .5 ? 1 : -1); price.push(D.o[t]); }
-      const tr = simulate(D.h, D.l, { idx, side, price }, tp, sl, weights, dists);
-      res.push(summarize(tr, D, fee, capital));
-    }
-    const avg = f => res.reduce((a, r) => a + f(r), 0) / res.length;
-    return { perTrade: avg(r => r.trades ? r.net / r.trades : 0), winRate: avg(r => r.trades ? r.wins / r.trades : 0), trades: avg(r => r.trades) };
-  }
-
-  const stateCache = new WeakMap();
-  // params: {bb, stoch, tp, sl, weights:[...], dists:[...], fee, capital, from, to (ms)}
-  function backtest(D, P) {
-    if (!stateCache.has(D)) stateCache.set(D, prepareState(D.c));
-    const S = stateCache.get(D);
-    const from = Math.max(1, Math.ceil(((P.from ?? D.t0) - D.t0) / D.step));
-    const to = Math.min(D.c.length, Math.floor(((P.to ?? Infinity) - D.t0) / D.step) || D.c.length);
-    const all = signals(D, S, P.bb, P.stoch);
-    const sig = { idx: [], side: [], price: [] };
-    all.idx.forEach((t, n) => { if (t >= from && t < to) { sig.idx.push(t); sig.side.push(all.side[n]); sig.price.push(all.price[n]); } });
-    // dane do `to`, żeby pozycje zamykały się w wybranym okresie
-    const hi = D.h.subarray ? D.h.subarray(0, to) : D.h.slice(0, to), lo = D.l.subarray ? D.l.subarray(0, to) : D.l.slice(0, to);
-    const trades = simulate(hi, lo, sig, P.tp, P.sl, P.weights, P.dists);
-    const sum = summarize(trades, D, P.fee, P.capital);
-    sum.list = trades; sum.signals = sig.idx.length;
-    sum.random = randomBenchmark({ ...D, h: hi, l: lo }, P.tp, P.sl, P.weights, P.dists, P.fee, P.capital, from, to);
-    return sum;
-  }
-
-  const api = { backtest, prepareState, signals, simulate };
+  const api = { portfolio, prepareState, signals, simulate, simulateOne };
   if (typeof module !== "undefined") module.exports = api; else root.BT = api;
 })(this);

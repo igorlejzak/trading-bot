@@ -11,8 +11,7 @@
 <style>
   header { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap;
            padding: 18px 0 22px; border-bottom: 1px solid var(--line); }
-  .strat-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-  .strat-row .desc { color: var(--muted); font-size: 13px; }
+  .rules { color: #c4cfdb; font-size: 14px; margin-top: 8px; max-width: 62ch; }
 
   /* wykres + lista par */
   .main { display: grid; grid-template-columns: 1fr 230px; gap: 20px; margin-top: 28px; }
@@ -23,7 +22,7 @@
   .pf-bar .seg button { padding: 2px 10px; }
 
   .pairs h2 { margin: 6px 0 12px; }
-  .pairs .list { height: 500px; overflow: auto; }
+  .pairs .list { max-height: 500px; overflow: auto; }
   .pair-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 9px 14px;
               background: none; border: 0; border-bottom: 1px solid rgba(35, 48, 68, .6); color: inherit; font: inherit;
               font-size: 14px; cursor: pointer; text-align: left; }
@@ -56,10 +55,8 @@
   <header>
     <div>
       <div class="status"><span class="dot off" id="dot"></span><span id="status">Connecting to the bot</span></div>
-      <div class="strat-row">
-        <div class="seg" id="strats" role="group" aria-label="Strategy"></div>
-        <span class="desc" id="strat-desc"></span>
-      </div>
+      <div class="rules">Long when the price is 1% below the lower Bollinger Band, short when it is 1% above the upper one,
+        with StochRSI confirming. Take profit 1%, stop loss 3%, 100 USD per trade.</div>
     </div>
     <div class="metrics">
       <div class="metric"><div class="v" id="m-capital">–</div><div class="k">Paper capital, USD</div></div>
@@ -100,16 +97,14 @@
   </section>
 
   <footer>
-    Paper trading on OKX spot prices, 100 USD per position and strategy, results after a 0.05% fee per side.
-    Each strategy holds its own independent position on every coin. Trades from before the multi-strategy version
-    were logged without fees; their net result is estimated. How the strategies were chosen, and a backtest you can
-    run yourself, are on the <a href="/research">Research</a> page.
+    Paper trading on OKX spot prices with the original rules, one position per pair, results after a 0.05% fee per side.
+    Older trades were logged without fees; their net result is estimated. Whether these rules have an edge, and a
+    backtest you can run on any settings, are on the <a href="/research">Research</a> page.
   </footer>
 </div>
 
 <script src="/static/linechart.js"></script>
 <script>
-const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)"];
 let state = null, history = [], strat = "original", selected = "SOL/USDT", pairFilter = "All", lastOk = 0;
 let view = "coin", range = "all";
 
@@ -117,20 +112,9 @@ const fmt = (v, d = 2) => Number(v).toLocaleString("en-US", { minimumFractionDig
 const priceFmt = v => v >= 1000 ? fmt(v, 1) : v >= 10 ? fmt(v, 2) : v >= 0.1 ? fmt(v, 4) : Number(v).toPrecision(4);
 const signed = v => (v > 0 ? "+" : "") + fmt(v);
 const short = p => p.replace("/USDT", "");
-const strategies = () => Object.entries(state?.strategies || {});
-const S = () => state?.strategies?.[strat];
-const colorOf = key => COLORS[Math.max(0, strategies().findIndex(([k]) => k === key)) % COLORS.length];
 const stratHist = () => history.filter(h => (h.strategy || "original") === strat);
 const capStart = () => state?.capital_start ?? 1000;
 const ts = t => Date.parse(t.replace(" ", "T") + "Z");
-
-function renderStrats() {
-  const box = document.getElementById("strats");
-  box.innerHTML = strategies().map(([k, s]) =>
-    `<button data-k="${k}" aria-pressed="${k === strat}"><span class="swatch" style="background:${colorOf(k)}"></span>${s.name}</button>`).join("");
-  box.querySelectorAll("button").forEach(b => b.onclick = () => { strat = b.dataset.k; renderAll(); });
-  document.getElementById("strat-desc").textContent = S()?.desc || "";
-}
 
 function renderPairs() {
   if (!state) return;
@@ -182,7 +166,7 @@ function renderHistory() {
       <td class="num hide-sm">${priceFmt(x.entry)}</td><td class="num hide-sm">${priceFmt(x.close)}</td>
       <td class="num hide-sm">${x.fills || 1}</td>
       <td class="num" style="color:${x.pnl_net > 0 ? "var(--up)" : "var(--down)"}">${signed(x.pnl_net)}</td></tr>`).join("")
-    : `<tr><td colspan="7" class="empty">No closed trades for this strategy yet.</td></tr>`;
+    : `<tr><td colspan="7" class="empty">No closed trades yet.</td></tr>`;
 }
 
 /* ---------- wykres: coin (TradingView) / portfel (SVG) ---------- */
@@ -220,39 +204,37 @@ function loadChart() {
 
 function renderPortfolio() {
   if (view !== "pf") return;
-  document.getElementById("chart-title").textContent = "Portfolio: paper capital since launch, net of fees";
+  document.getElementById("chart-title").textContent = "Paper capital since launch, net of fees";
   const now = Date.now(), from = range === "all" ? -Infinity : now - Number(range) * 864e5;
-  const series = strategies().map(([k, s]) => {
-    const h = history.filter(x => (x.strategy || "original") === k);
-    let eq = capStart(), pts = [];
-    if (h.length) {
-      pts = [[ts(h[0].opened || h[0].time), eq], ...h.map(x => [ts(x.time), (eq += x.pnl_net)])];
-      pts.push([now, eq]);
-      const before = pts.filter(p => p[0] <= from);
-      if (before.length) pts = [[from, before[before.length - 1][1]], ...pts.filter(p => p[0] > from)];
-    }
-    return { name: s.name, color: colorOf(k), pts };
-  });
+  const h = stratHist();
+  let eq = capStart(), pts = [];
+  if (h.length) {
+    pts = [[ts(h[0].opened || h[0].time), eq], ...h.map(x => [ts(x.time), (eq += x.pnl_net)])];
+    pts.push([now, eq]);
+    const before = pts.filter(p => p[0] <= from);
+    if (before.length) pts = [[from, before[before.length - 1][1]], ...pts.filter(p => p[0] > from)];
+  }
+  const series = [{ name: "Paper capital", color: "var(--s1)", pts }];
   const box = document.getElementById("chart");
   const ranges = [["all", "All"], ["30", "30 days"], ["7", "7 days"]];
   box.innerHTML = `<div class="pf-bar">
       <div class="seg">${ranges.map(([k, l]) => `<button data-r="${k}" aria-pressed="${k === range}">${l}</button>`).join("")}</div>
-      <div class="legend">${series.filter(s => s.pts.length).map(s => `<span><span class="swatch" style="background:${s.color}"></span>${s.name} <b>${fmt(s.pts[s.pts.length - 1][1])}</b></span>`).join("")}</div>
+      <div class="legend">${pts.length ? `<span>Now <b>${fmt(pts[pts.length - 1][1])} USD</b></span>` : ""}</div>
     </div><div class="lc" id="pf" style="height:calc(100% - 44px)"></div>`;
   box.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { range = b.dataset.r; renderPortfolio(); });
-  lineChart(document.getElementById("pf"), series, { base: capStart() });
+  lineChart(document.getElementById("pf"), series, { base: capStart(), fmt: v => fmt(v) + " USD" });
 }
 let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderPortfolio, 150); });
 
 /* ---------- dane ---------- */
-function renderAll() { renderStrats(); renderPairs(); renderSummary(); renderHistory(); view === "coin" ? loadChart() : renderPortfolio(); }
+function renderAll() { renderPairs(); renderSummary(); renderHistory(); view === "coin" ? loadChart() : renderPortfolio(); }
 
 function setStatus() {
   const age = Math.round((Date.now() - lastOk) / 1000);
   const ok = lastOk && age < 15;
   document.getElementById("dot").className = "dot" + (ok ? "" : " off");
   document.getElementById("status").textContent = !lastOk ? "Connecting to the bot"
-    : ok ? `Live, paper trading on OKX, ${Object.keys(state.coins).length} pairs, updated ${age} s ago`
+    : ok ? `Live, paper trading on OKX, updated ${age} s ago`
     : `No response from the bot for ${age} s. Showing the last known state.`;
 }
 async function pollState() {
@@ -261,7 +243,6 @@ async function pollState() {
     if (!r.ok) throw new Error(r.status);
     const first = !state;
     state = await r.json(); lastOk = Date.now();
-    if (!state.strategies[strat]) strat = Object.keys(state.strategies)[0];
     if (first) renderAll(); else { renderPairs(); renderSummary(); }
   } catch (e) { /* status shows the age of the last good update */ }
   setStatus();

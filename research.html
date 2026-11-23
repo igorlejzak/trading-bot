@@ -47,32 +47,47 @@
   /* backtest */
   #backtest { margin-top: 64px; padding-top: 28px; border-top: 1px solid var(--line); scroll-margin-top: 16px; }
   #backtest > h2 { font-size: 20px; margin-bottom: 6px; }
-  .bt { display: grid; grid-template-columns: 320px 1fr; gap: 24px; margin-top: 20px; align-items: start; }
+  .bt { display: grid; grid-template-columns: 340px 1fr; gap: 24px; margin-top: 20px; align-items: start; }
   .form { padding: 18px; }
-  .form fieldset { border: 0; padding: 0; margin: 0 0 18px; }
+  .form fieldset { border: 0; padding: 0; margin: 0 0 20px; }
   .form legend { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 8px 0; font-size: 14px; }
   .row label { color: #c4cfdb; }
   .num-in { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
   .num-in input, select { width: 78px; background: var(--ink); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius);
                           padding: 5px 8px; font: inherit; font-size: 14px; text-align: right; }
+  .num-in input.wide { width: 100px; }
   select { width: auto; text-align: left; }
   input[type=checkbox] { accent-color: var(--steel); width: 16px; height: 16px; }
   .entries-table { width: 100%; font-size: 13px; }
   .entries-table td, .entries-table th { padding: 5px 4px; border: 0; }
   .entries-table input { width: 64px; }
-  .warn { color: var(--down); font-size: 12px; min-height: 1em; }
+  .entries-table input.usd { width: 84px; }
   .presets { display: flex; gap: 6px; flex-wrap: wrap; }
-  .hint { color: var(--muted); font-size: 12px; margin: 2px 0 0; }
+  .presets button, .chips button, .linkbtn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px;
+                     padding: 3px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .presets button[aria-pressed="true"], .chips button[aria-pressed="true"] { color: var(--text); border-color: var(--steel); background: rgba(111, 163, 247, .1); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+  .chip-tools { display: flex; gap: 12px; font-size: 13px; }
+  .chip-tools button { background: none; border: 0; color: var(--steel); font: inherit; font-size: 13px; padding: 0; cursor: pointer; }
+  .hint { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+  .warn { color: var(--down); font-size: 12px; margin: 4px 0 0; }
+  .run { width: 100%; padding: 10px; border-radius: var(--radius); border: 0; background: var(--steel); color: #0b1220;
+         font: inherit; font-weight: 600; cursor: pointer; }
+  .run:disabled { opacity: .6; cursor: wait; }
+  .seg-wide { display: flex; } .seg-wide button { flex: 1; }
 
   .res-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
   .res-head h3 { margin: 0; font-size: 15px; }
-  .bt .stats { grid-template-columns: repeat(6, 1fr); }
-  .eq { height: 300px; margin: 16px 0; padding-top: 6px; }
+  .stale { color: var(--muted); font-size: 13px; }
+  .bt .stats { grid-template-columns: repeat(4, 1fr); }
+  .eq { height: 320px; margin: 16px 0; padding-top: 6px; }
   .verdict { margin: 14px 0 0; font-size: 14px; color: #c4cfdb; }
-  .two { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
-  .trades-scroll { max-height: 300px; overflow: auto; }
-  details summary { cursor: pointer; color: var(--steel); font-size: 14px; margin: 8px 0; }
+  .verdict p { margin: 0 0 6px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 8px; }
+  .res h4 { font-size: 14px; margin: 20px 0 8px; font-weight: 600; }
+  .scroll { max-height: 340px; overflow: auto; }
+  .placeholder { padding: 40px 24px; color: var(--muted); text-align: center; }
 
   dialog { border: 0; padding: 0; background: transparent; max-width: 96vw; }
   dialog::backdrop { background: rgba(5, 10, 16, .85); }
@@ -80,7 +95,7 @@
 
   @media (max-width: 900px) {
     .bt, .two { grid-template-columns: 1fr; }
-    .bt .stats { grid-template-columns: repeat(3, 1fr); }
+    .bt .stats { grid-template-columns: repeat(2, 1fr); }
     .gallery { grid-template-columns: 1fr; }
   }
 </style>
@@ -100,7 +115,7 @@
       <div class="meta">Three years of 1-minute OKX data · SOL, BTC, ETH, XRP · 100 USD per position · 0.05% fee per side</div>
       <nav class="toc">
         <a href="#process">Process</a><a href="#method">Method</a><a href="#findings">Findings</a>
-        <a href="#results">Results</a><a href="#changes">What changed</a><a href="#limits">Limitations</a>
+        <a href="#results">Results</a><a href="#changes">Live bot</a><a href="#limits">Limitations</a>
         <a href="#backtest" class="cta">Run your own backtest →</a>
       </nav>
     </div>
@@ -133,8 +148,9 @@
         Targets that grow and shrink with recent volatility instead of fixed percentages.</li>
       <li><b>Out-of-sample on other coins</b>
         Settings frozen on SOL, then run unchanged on BTC, ETH and XRP, where all three years are unseen data.</li>
-      <li><span class="when">November 2026</span><b>Live bot, version 2</b>
-        Three strategies side by side on 21 coins, with fees in the trade log, so the live data can settle what the backtest could not.</li>
+      <li><span class="when">November 2026</span><b>Backtest for everyone</b>
+        The simulator now runs in the browser on a whole portfolio of coins at once, so any setting can be checked
+        on every market together. The live bot stays on the original rules as a working example.</li>
     </ol>
 
     <h2 id="method">Method</h2>
@@ -205,11 +221,10 @@
       <figure><img src="/docs/report_6.png" alt="Two entries, worst" data-zoom><figcaption>Two entries, worst</figcaption></figure>
     </div>
 
-    <h2 id="changes">What changed in the live bot</h2>
+    <h2 id="changes">The live bot today</h2>
+    <p>The bot on the <a href="/">Live</a> page keeps running the original rules on BTC, ETH, SOL and XRP. It is there to show how
+      the bot works end to end, not to test new ideas: new settings are checked in the backtest below, on years of data instead of weeks.</p>
     <ul>
-      <li><strong>Three strategies at once.</strong> The original rules keep running so the history stays continuous. Next to them
-        run the one-entry setting that transferred best and the two-entry setting that was best on SOL.</li>
-      <li><strong>21 coins instead of 4,</strong> to collect live trades faster and on markets the research never saw.</li>
       <li><strong>Fees in the log.</strong> Every trade is stored gross and net. Old trades get an estimated fee.</li>
       <li><strong>Lighter on the exchange.</strong> One price request for all coins every 2 seconds; 15-minute candles are fetched only when a new one closes.</li>
       <li><strong>Separate data branch.</strong> History and open positions are written to a <code>bot-data</code> branch on GitHub,
@@ -220,8 +235,8 @@
     <ul>
       <li>Funding fees on perpetual futures and slippage on stop orders are not modelled.</li>
       <li>Roughly 40–280 trades per coin in three years: encouraging, not proof.</li>
-      <li>Next: a multi-coin portfolio curve, Monte Carlo resampling of trades for drawdown and ruin probability,
-        and order execution on an exchange testnet compared with the backtest.</li>
+      <li>Next: Monte Carlo resampling of trades for drawdown and ruin probability, and order execution on an
+        exchange testnet compared with the backtest.</li>
     </ul>
     <p>Code: <a href="https://github.com/IgorLejzak/trading-bot">github.com/IgorLejzak/trading-bot</a></p>
   </div>
@@ -229,9 +244,10 @@
   <!-- ===================================================== backtest -->
   <section id="backtest">
     <h2>Run your own backtest</h2>
-    <p class="note" style="max-width:80ch">Set the rules and the result updates as you type. It runs in your browser on 15-minute candles with the
-      same simulator as the research code. The research engine works on 1-minute candles, so numbers can differ slightly from the tables above,
-      mostly when TP and SL fall inside the same 15 minutes, which is counted as a loss here.</p>
+    <p class="note" style="max-width:80ch">Pick the coins, set the capital and the rules, and press Run. All selected coins trade together
+      from one account, the way a bot running on every market would. It runs in your browser on 15-minute candles with the same simulator
+      as the research code. The research engine uses 1-minute candles, so numbers can differ slightly from the tables above, mostly when
+      take profit and stop loss fall inside the same 15 minutes, which is counted as a loss here.</p>
 
     <div class="bt">
       <form class="form panel" id="form" onsubmit="return false">
@@ -240,23 +256,31 @@
           <div class="presets" id="presets"></div>
         </fieldset>
         <fieldset>
-          <legend>Market</legend>
-          <div class="row"><label for="coin">Coin</label><select id="coin"></select></div>
+          <legend>Coins</legend>
+          <div class="chips" id="coins"><span class="hint">Loading the list of coins</span></div>
+          <div class="chip-tools"><button type="button" id="all">Select all</button><button type="button" id="none">Clear</button></div>
+        </fieldset>
+        <fieldset>
+          <legend>Account</legend>
+          <div class="row"><label for="capital">Starting capital</label><span class="num-in"><input id="capital" class="wide" type="number" step="1000" min="1">USD</span></div>
           <div class="row"><label for="period">Period</label>
             <select id="period"><option value="all">All data</option><option value="train">Train (to Nov 10, 2025)</option><option value="test">Test (from Nov 10, 2025)</option></select></div>
+          <div class="row"><label>Direction</label>
+            <div class="seg" id="dir"><button type="button" data-d="both">Both</button><button type="button" data-d="long">Long</button><button type="button" data-d="short">Short</button></div></div>
         </fieldset>
         <fieldset>
           <legend>Entry signal</legend>
           <div class="row"><label for="bb">Distance beyond the band</label><span class="num-in"><input id="bb" type="number" step="0.1" min="0" max="10">%</span></div>
           <div class="row"><label for="stoch">StochRSI confirmation</label><input id="stoch" type="checkbox"></div>
-          <p class="hint">Long below the lower band, short above the upper one. BB(20, 2) and StochRSI(14, 3, 3) on 15-minute candles; confirmation means K and D both below 20 for a long, above 80 for a short.</p>
+          <p class="hint">Long below the lower band, short above the upper one. BB(20, 2) and StochRSI(14, 3, 3) on 15-minute candles;
+            confirmation means K and D both below 20 for a long, above 80 for a short.</p>
         </fieldset>
         <fieldset>
-          <legend>Entries</legend>
+          <legend>Entries per position</legend>
           <div class="row"><label>Number of entries</label>
             <div class="seg" id="n-entries"><button type="button" data-n="1">1</button><button type="button" data-n="2">2</button><button type="button" data-n="3">3</button></div></div>
-          <table class="entries-table"><thead><tr><th></th><th class="num">From 1st entry</th><th class="num">Capital</th></tr></thead><tbody id="entries"></tbody></table>
-          <div class="warn" id="split-warn"></div>
+          <table class="entries-table"><thead><tr><th></th><th class="num">From 1st entry</th><th class="num">Amount</th></tr></thead><tbody id="entries"></tbody></table>
+          <p class="hint" id="size-hint"></p>
         </fieldset>
         <fieldset>
           <legend>Exit</legend>
@@ -265,26 +289,12 @@
           <p class="hint" id="sl-hint"></p>
           <div class="row"><label for="fee">Fees, 0.05% per side</label><input id="fee" type="checkbox" checked></div>
         </fieldset>
+        <button type="button" class="run" id="run">Run backtest</button>
+        <p class="warn" id="form-warn"></p>
       </form>
 
-      <div>
-        <div class="res-head"><h3 id="res-title">Result</h3><span class="note" id="res-meta"></span></div>
-        <div class="stats" id="res-stats"><div><div class="v">–</div><div class="k">Loading data</div></div></div>
-        <p class="verdict" id="verdict"></p>
-        <div class="eq lc panel" id="eq"></div>
-        <div class="two">
-          <div>
-            <h3 style="font-size:14px;margin:0 0 8px">By year</h3>
-            <table><thead><tr><th>Year</th><th class="num">Trades</th><th class="num">USD</th></tr></thead><tbody id="years"></tbody></table>
-          </div>
-          <div>
-            <details><summary>Show the trades</summary>
-              <div class="trades-scroll"><table>
-                <thead><tr><th>Opened</th><th>Side</th><th class="num">Avg entry</th><th class="num">Exit</th><th class="num">Fills</th><th class="num">USD</th></tr></thead>
-                <tbody id="trades"></tbody></table></div>
-            </details>
-          </div>
-        </div>
+      <div class="res" id="res">
+        <div class="panel placeholder">Choose the settings and press <b>Run backtest</b>.</div>
       </div>
     </div>
   </section>
@@ -299,114 +309,190 @@
 <script>
 const TEST_START = Date.UTC(2025, 10, 10);
 const PRESETS = {
-  "Original rules": { bb: 1.0, stoch: true, n: 1, dists: [], split: [100], tp: 1.0, sl: 3.0 },
-  "1 entry, BB 1.9%": { bb: 1.9, stoch: false, n: 1, dists: [], split: [100], tp: 2.0, sl: 4.6 },
-  "2 entries, averaging": { bb: 1.5, stoch: true, n: 2, dists: [4.0], split: [30, 70], tp: 2.2, sl: 2.0 },
+  "Original rules": { bb: 1.0, stoch: true, n: 1, dists: [], amounts: [1000], tp: 1.0, sl: 3.0 },
+  "1 entry, BB 1.9%": { bb: 1.9, stoch: false, n: 1, dists: [], amounts: [1000], tp: 2.0, sl: 4.6 },
+  "2 entries, averaging": { bb: 1.5, stoch: true, n: 2, dists: [4.0], amounts: [300, 700], tp: 2.2, sl: 2.0 },
 };
 const fmt = (v, d = 2) => Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const usd = (v, d = 0) => fmt(v, d);
 const signed = (v, d = 2) => (v > 0 ? "+" : "") + fmt(v, d);
-const priceFmt = v => v >= 1000 ? fmt(v, 1) : v >= 10 ? fmt(v, 2) : fmt(v, 4);
+const priceFmt = v => v >= 1000 ? fmt(v, 1) : v >= 10 ? fmt(v, 2) : v >= 0.1 ? fmt(v, 4) : Number(v).toPrecision(4);
+const dt = ms => new Date(ms).toISOString().slice(0, 16).replace("T", " ");
 const $ = id => document.getElementById(id);
 const cache = {};
-let P = structuredClone(PRESETS["1 entry, BB 1.9%"]), activePreset = "1 entry, BB 1.9%";
+let P = { ...structuredClone(PRESETS["Original rules"]), capital: 10000, dir: "both" }, activePreset = "Original rules";
+let available = [], selected = new Set(["SOL", "BTC", "ETH", "XRP"]), lastRun = null;
 
 // powiększanie wykresów
-document.querySelectorAll("[data-zoom]").forEach(img => img.onclick = () => {
-  const d = $("zoom"); d.querySelector("img").src = img.src; d.showModal();
-});
+document.querySelectorAll("[data-zoom]").forEach(img => img.onclick = () => { const d = $("zoom"); d.querySelector("img").src = img.src; d.showModal(); });
 $("zoom").onclick = () => $("zoom").close();
 
+function renderCoins() {
+  $("coins").innerHTML = available.map(c => `<button type="button" data-c="${c}" aria-pressed="${selected.has(c)}">${c}</button>`).join("");
+  $("coins").querySelectorAll("button").forEach(b => b.onclick = () => {
+    selected.has(b.dataset.c) ? selected.delete(b.dataset.c) : selected.add(b.dataset.c); renderCoins(); markStale();
+  });
+}
+$("all").onclick = () => { selected = new Set(available); renderCoins(); markStale(); };
+$("none").onclick = () => { selected = new Set(); renderCoins(); markStale(); };
+
+function sizeHint() {
+  const size = P.amounts.slice(0, P.n).reduce((a, b) => a + (+b || 0), 0);
+  const fit = size > 0 ? Math.floor(P.capital / size) : 0;
+  $("size-hint").textContent = size > 0
+    ? `Position size ${usd(size)} USD. With ${usd(P.capital)} USD the account can hold ${fit} position${fit === 1 ? "" : "s"} at once` +
+      (P.n > 1 ? "; the full amount is set aside at the first entry so every add is covered." : ".")
+    : "";
+}
+
 function fillForm() {
-  $("bb").value = P.bb; $("stoch").checked = P.stoch; $("tp").value = P.tp; $("sl").value = P.sl;
+  $("bb").value = P.bb; $("stoch").checked = P.stoch; $("tp").value = P.tp; $("sl").value = P.sl; $("capital").value = P.capital;
   document.querySelectorAll("#n-entries button").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.n) === P.n));
+  document.querySelectorAll("#dir button").forEach(b => b.setAttribute("aria-pressed", b.dataset.d === P.dir));
   const rows = [];
   for (let k = 0; k < P.n; k++)
     rows.push(`<tr><td>${["1st", "2nd", "3rd"][k]}</td>
       <td class="num">${k === 0 ? '<span class="note">signal</span>' : `<span class="num-in"><input type="number" step="0.5" min="0.1" data-d="${k - 1}" value="${P.dists[k - 1]}">%</span>`}</td>
-      <td class="num"><span class="num-in"><input type="number" step="5" min="1" max="100" data-w="${k}" value="${P.split[k]}">%</span></td></tr>`);
+      <td class="num"><span class="num-in"><input class="usd" type="number" step="100" min="1" data-w="${k}" value="${P.amounts[k]}">USD</span></td></tr>`);
   $("entries").innerHTML = rows.join("");
-  $("sl-hint").textContent = P.n > 1 ? "The stop loss is placed only after the last entry has filled. Until then the position waits for the next entry." : "";
+  $("sl-hint").textContent = P.n > 1 ? "The stop loss is placed after the last entry fills. Until then the position waits for the next entry." : "";
   document.querySelectorAll("#presets button").forEach(b => b.setAttribute("aria-pressed", b.dataset.p === activePreset));
+  sizeHint();
 }
 
 function readForm() {
-  P.bb = +$("bb").value; P.stoch = $("stoch").checked; P.tp = +$("tp").value; P.sl = +$("sl").value;
+  P.bb = +$("bb").value; P.stoch = $("stoch").checked; P.tp = +$("tp").value; P.sl = +$("sl").value; P.capital = +$("capital").value;
   document.querySelectorAll("[data-d]").forEach(i => P.dists[+i.dataset.d] = +i.value);
-  document.querySelectorAll("[data-w]").forEach(i => P.split[+i.dataset.w] = +i.value);
+  document.querySelectorAll("[data-w]").forEach(i => P.amounts[+i.dataset.w] = +i.value);
 }
 
-function setEntries(n) {
-  const defaults = { 1: { dists: [], split: [100] }, 2: { dists: [4], split: [30, 70] }, 3: { dists: [2, 5], split: [30, 30, 40] } };
-  P.n = n; P.dists = (P.dists.length >= n - 1 ? P.dists.slice(0, n - 1) : defaults[n].dists);
-  P.split = P.split.length === n ? P.split : defaults[n].split.slice();
-  activePreset = null; fillForm(); run();
+function markStale() {
+  sizeHint();
+  if (lastRun && $("stale")) $("stale").textContent = "Settings changed. Press Run backtest to update.";
 }
 
-$("presets").innerHTML = Object.keys(PRESETS).map(k => `<div class="seg"><button type="button" data-p="${k}">${k}</button></div>`).join("");
-document.querySelectorAll("#presets button").forEach(b => b.onclick = () => { P = structuredClone(PRESETS[b.dataset.p]); activePreset = b.dataset.p; fillForm(); run(); });
-document.querySelectorAll("#n-entries button").forEach(b => b.onclick = () => setEntries(Number(b.dataset.n)));
-let tmr;
-$("form").addEventListener("input", () => { activePreset = null; document.querySelectorAll("#presets button").forEach(b => b.setAttribute("aria-pressed", false)); clearTimeout(tmr); tmr = setTimeout(() => { readForm(); run(); }, 250); });
+$("presets").innerHTML = Object.keys(PRESETS).map(k => `<button type="button" data-p="${k}">${k}</button>`).join("");
+document.querySelectorAll("#presets button").forEach(b => b.onclick = () => {
+  readForm(); P = { ...structuredClone(PRESETS[b.dataset.p]), capital: P.capital, dir: P.dir }; activePreset = b.dataset.p; fillForm(); markStale();
+});
+document.querySelectorAll("#n-entries button").forEach(b => b.onclick = () => {
+  readForm();
+  const n = Number(b.dataset.n), def = { 1: [[], [1000]], 2: [[4], [300, 700]], 3: [[2, 5], [300, 300, 400]] }[n];
+  if (n !== P.n) { P.n = n; P.dists = P.dists.length >= n - 1 ? P.dists.slice(0, n - 1) : def[0]; P.amounts = P.amounts.length === n ? P.amounts : def[1].slice(); }
+  activePreset = null; fillForm(); markStale();
+});
+document.querySelectorAll("#dir button").forEach(b => b.onclick = () => { readForm(); P.dir = b.dataset.d; fillForm(); markStale(); });
+$("form").addEventListener("input", () => {
+  readForm(); activePreset = null;
+  document.querySelectorAll("#presets button").forEach(b => b.setAttribute("aria-pressed", false));
+  markStale();
+});
 
-async function loadCoin(coin) {
-  if (!cache[coin]) cache[coin] = fetch(`/data/web/${coin}.json`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+async function loadCoin(c) {
+  cache[c] ||= fetch(`/data/web/${c}.json`).then(r => { if (!r.ok) throw new Error(c); return r.json(); })
     .then(J => ({ t0: J.t0, step: J.step, o: Float64Array.from(J.o), h: Float64Array.from(J.h), l: Float64Array.from(J.l), c: Float64Array.from(J.c) }));
-  return cache[coin];
+  return cache[c];
 }
 
-async function run() {
-  const coin = $("coin").value;
-  if (!coin) return;
-  const sum = P.split.slice(0, P.n).reduce((a, b) => a + b, 0);
-  $("split-warn").textContent = Math.abs(sum - 100) > 0.01 ? `Capital adds up to ${fmt(sum, 0)}%; it is scaled to 100% for the test.` : "";
-  const bad = !(P.bb >= 0 && P.tp > 0 && P.sl > 0) || P.dists.slice(0, P.n - 1).some(d => !(d > 0)) || P.split.slice(0, P.n).some(w => !(w > 0));
-  if (bad) { $("verdict").textContent = "Fill in every field with a positive number."; return; }
-  let D;
-  try { D = await loadCoin(coin); }
-  catch (e) { $("res-stats").innerHTML = `<div><div class="v">–</div><div class="k">No data for ${coin} on the server</div></div>`; return; }
-  const period = $("period").value;
-  const from = period === "test" ? TEST_START : D.t0, to = period === "train" ? TEST_START : Infinity;
-  const weights = P.split.slice(0, P.n).map(w => w / sum);
-  const r = BT.backtest(D, { bb: P.bb / 100, stoch: P.stoch, tp: P.tp / 100, sl: P.sl / 100, weights,
-                             dists: P.dists.slice(0, P.n - 1).map(d => d / 100), fee: $("fee").checked ? 0.0005 : 0, capital: 100, from, to });
-  const end = Math.min(to, D.t0 + (D.c.length - 1) * D.step);
-  const d0 = new Date(Math.max(from, D.t0)).toISOString().slice(0, 10), d1 = new Date(end).toISOString().slice(0, 10);
-  $("res-title").textContent = `${coin}/USDT, ${d0} to ${d1}`;
-  $("res-meta").textContent = `${r.signals} signals, ${r.trades} trades`;
-  const per = r.trades ? r.net / r.trades : 0;
-  const ratio = r.maxDd < 0 ? r.net / -r.maxDd : null;
-  $("res-stats").innerHTML = [
-    [r.trades, "Trades"],
-    [r.trades ? Math.round(r.wins / r.trades * 100) + "%" : "–", "Winning"],
-    [`<span class="${r.net >= 0 ? "up" : "down"}">${signed(r.net, 1)}</span>`, "Result, USD"],
-    [fmt(r.maxDd, 1), "Max drawdown, USD"],
-    [ratio == null ? "–" : fmt(ratio, 2), "Result / drawdown"],
-    [r.trades ? signed(per) : "–", "Average per trade"],
-  ].map(([v, k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
-  $("verdict").innerHTML = r.trades
-    ? `Random entries with the same exit rules made <b>${signed(r.random.perTrade)} USD</b> per trade and won ${Math.round(r.random.winRate * 100)}% of them. ` +
-      (per > r.random.perTrade ? `The signal beats random by ${fmt(per - r.random.perTrade)} USD per trade.` : `The signal does <b>not</b> beat random entries.`) +
-      (P.n > 1 ? ` On average ${fmt(r.avgFills, 2)} of ${P.n} entries filled.` : "")
-    : "No trades in this period with these rules.";
-  lineChart($("eq"), [{ name: "Result", color: "var(--s1)", pts: r.curve }], { base: 0, fmt: v => signed(v) + " USD" });
-  $("years").innerHTML = Object.entries(r.years).map(([y, v]) =>
-    `<tr><td>${y}</td><td class="num">${v.trades}</td><td class="num ${v.pnl >= 0 ? "up" : "down"}">${signed(v.pnl, 1)}</td></tr>`).join("");
-  $("trades").innerHTML = r.list.slice().reverse().map((t, n) => {
-    const v = r.netList[r.list.length - 1 - n];
-    return `<tr><td>${new Date(D.t0 + t.i * D.step).toISOString().slice(0, 16).replace("T", " ")}</td>
-      <td class="${t.side === 1 ? "pos-long" : "pos-short"}">${t.side === 1 ? "Long" : "Short"}</td>
-      <td class="num">${priceFmt(t.avg)}</td><td class="num">${priceFmt(t.exit)}</td><td class="num">${t.fills}</td>
-      <td class="num ${v >= 0 ? "up" : "down"}">${signed(v)}</td></tr>`;
-  }).join("");
+function validate() {
+  const errs = [];
+  if (!selected.size) errs.push("Select at least one coin.");
+  if (!(P.capital > 0)) errs.push("Set the starting capital.");
+  if (!(P.bb >= 0 && P.tp > 0 && P.sl > 0)) errs.push("Distance, take profit and stop loss must be positive numbers.");
+  if (P.amounts.slice(0, P.n).some(a => !(a > 0))) errs.push("Every entry needs an amount in USD.");
+  if (P.dists.slice(0, P.n - 1).some(d => !(d > 0))) errs.push("Every add needs a distance from the first entry.");
+  for (let k = 1; k < P.n - 1; k++) if (P.dists[k] <= P.dists[k - 1]) errs.push("Each add must be further from the first entry than the previous one.");
+  const size = P.amounts.slice(0, P.n).reduce((a, b) => a + b, 0);
+  if (size > P.capital) errs.push(`One position (${usd(size)} USD) is larger than the capital.`);
+  return errs;
 }
-$("coin").onchange = run; $("period").onchange = run;
-let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(run, 200); });
+
+$("run").onclick = async () => {
+  readForm();
+  const errs = validate();
+  $("form-warn").textContent = errs.join(" ");
+  if (errs.length) return;
+  const coins = available.filter(c => selected.has(c));
+  const btn = $("run"); btn.disabled = true;
+  try {
+    let done = 0;
+    const loaded = await Promise.all(coins.map(c => loadCoin(c).then(D => { btn.textContent = `Loading data ${++done}/${coins.length}`; return { name: c, D }; })));
+    btn.textContent = "Calculating";
+    await new Promise(r => setTimeout(r, 20));
+    const period = $("period").value;
+    const params = { bb: P.bb / 100, stoch: P.stoch, dir: P.dir, tp: P.tp / 100, sl: P.sl / 100, amounts: P.amounts.slice(0, P.n),
+                     dists: P.dists.slice(0, P.n - 1).map(d => d / 100), fee: $("fee").checked ? 0.0005 : 0, capital: P.capital,
+                     from: period === "test" ? TEST_START : null, to: period === "train" ? TEST_START : null };
+    lastRun = { r: BT.portfolio(loaded, params), loaded, params, coins };
+    render(lastRun);
+  } catch (e) {
+    $("form-warn").textContent = `Could not load data for ${e.message}.`;
+  } finally { btn.disabled = false; btn.textContent = "Run backtest"; }
+};
+
+function render({ r, loaded, params, coins }) {
+  const starts = loaded.map(x => x.D.t0), ends = loaded.map(x => x.D.t0 + (x.D.c.length - 1) * x.D.step);
+  const d0 = new Date(Math.max(params.from ?? 0, Math.min(...starts))).toISOString().slice(0, 10);
+  const d1 = new Date(Math.min(params.to ?? Infinity, Math.max(...ends))).toISOString().slice(0, 10);
+  const ret = r.net / params.capital * 100, per = r.trades ? r.net / r.trades : 0;
+  const title = coins.length <= 6 ? coins.join(", ") : `${coins.length} coins`;
+  const dirTxt = { both: "", long: ", long only", short: ", short only" }[params.dir];
+  const posTxt = r.size === params.capital ? "one position at a time" : `up to ${Math.floor(params.capital / r.size)} positions at once`;
+  $("res").innerHTML = `
+    <div class="res-head"><h3>${title}, ${d0} to ${d1}${dirTxt}</h3><span class="stale" id="stale"></span></div>
+    <div class="stats">${[
+      [usd(r.end), "Final capital, USD"],
+      [`<span class="${r.net >= 0 ? "up" : "down"}">${signed(ret, 1)}%</span>`, `Return (${signed(r.net, 0)} USD)`],
+      [`${fmt(r.maxDdPct * 100, 1)}%`, `Max drawdown (${usd(r.maxDd)} USD)`],
+      [r.maxDd < 0 ? fmt(r.net / -r.maxDd, 2) : "–", "Result / drawdown"],
+      [r.trades, "Trades"],
+      [r.trades ? Math.round(r.wins / r.trades * 100) + "%" : "–", "Winning"],
+      [r.trades ? signed(per) : "–", "Average per trade, USD"],
+      [r.avgWin != null ? `+${fmt(r.avgWin)} / ${r.avgLoss != null ? fmt(r.avgLoss) : "–"}` : "–", "Average win / loss, USD"],
+    ].map(([v, k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join("")}</div>
+    <div class="verdict">
+      <p>Positions of ${usd(r.size)} USD, ${posTxt}. At most ${r.maxOpen} were open together.
+        ${r.skipped ? `<b>${r.skipped}</b> signals were skipped because the capital was already in use.` : "No signal was skipped for lack of capital."}
+        ${r.openAtEnd ? `${r.openAtEnd} position${r.openAtEnd > 1 ? "s were" : " was"} still open at the end and ${r.openAtEnd > 1 ? "are" : "is"} not counted.` : ""}
+        ${params.amounts.length > 1 && r.trades ? `On average ${fmt(r.avgFills, 2)} of ${params.amounts.length} entries filled.` : ""}</p>
+      <p>Random entries on the same coins with the same exits made <b>${signed(r.random.perTrade)} USD</b> per trade and won ${Math.round(r.random.winRate * 100)}% of them.
+        ${!r.trades ? "" : per > r.random.perTrade ? `The signal beats random by ${fmt(per - r.random.perTrade)} USD per trade.` : "The signal does <b>not</b> beat random entries."}</p>
+    </div>
+    <div class="eq lc panel" id="eq"></div>
+    <div class="two">
+      <div>
+        <h4>By coin</h4>
+        <div class="scroll"><table><thead><tr><th>Coin</th><th class="num">Trades</th><th class="num">Winning</th><th class="num">USD</th><th class="num">Skipped</th></tr></thead><tbody>
+        ${r.perCoin.slice().sort((a, b) => b.pnl - a.pnl).map(c => `<tr><td>${c.name}</td><td class="num">${c.trades}</td>
+          <td class="num">${c.trades ? Math.round(c.wins / c.trades * 100) + "%" : "–"}</td>
+          <td class="num ${c.pnl >= 0 ? "up" : "down"}">${signed(c.pnl, 0)}</td><td class="num">${c.skipped || ""}</td></tr>`).join("")}
+        </tbody></table></div>
+      </div>
+      <div>
+        <h4>By year</h4>
+        <table><thead><tr><th>Year</th><th class="num">Trades</th><th class="num">USD</th></tr></thead><tbody>
+        ${Object.entries(r.years).map(([y, v]) => `<tr><td>${y}</td><td class="num">${v.trades}</td><td class="num ${v.pnl >= 0 ? "up" : "down"}">${signed(v.pnl, 0)}</td></tr>`).join("")}
+        </tbody></table>
+      </div>
+    </div>
+    <h4>Trades (${r.trades}, newest first)</h4>
+    <div class="scroll"><table>
+      <thead><tr><th>Closed</th><th>Coin</th><th>Side</th><th class="num hide-sm">Avg entry</th><th class="num hide-sm">Exit</th><th class="num">Fills</th><th class="num">USD</th></tr></thead>
+      <tbody>${r.list.slice().reverse().slice(0, 500).map(t => `<tr><td>${dt(t.exitMs)}</td><td>${t.coin}</td>
+        <td class="${t.side === 1 ? "pos-long" : "pos-short"}">${t.side === 1 ? "Long" : "Short"}</td>
+        <td class="num hide-sm">${priceFmt(t.avg)}</td><td class="num hide-sm">${priceFmt(t.exit)}</td><td class="num">${t.fills}</td>
+        <td class="num ${t.pnl >= 0 ? "up" : "down"}">${signed(t.pnl)}</td></tr>`).join("")}</tbody></table></div>
+    ${r.trades > 500 ? '<p class="hint">Showing the newest 500 trades.</p>' : ""}`;
+  lineChart($("eq"), [{ name: "Capital", color: "var(--s1)", pts: r.curve }], { base: params.capital, fmt: v => usd(v) + " USD" });
+}
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => lastRun && $("eq") && lineChart($("eq"), [{ name: "Capital", color: "var(--s1)", pts: lastRun.r.curve }], { base: lastRun.params.capital, fmt: v => usd(v) + " USD" }), 200); });
 
 fillForm();
-fetch("/data/web/index.json").then(r => r.json()).then(coins => {
-  $("coin").innerHTML = coins.map(c => `<option${c === "SOL" ? " selected" : ""}>${c}</option>`).join("");
-  run();
-}).catch(() => { $("res-stats").innerHTML = '<div><div class="v">–</div><div class="k">Backtest data is not available</div></div>'; });
+fetch("/data/web/index.json").then(r => r.json()).then(list => {
+  available = list; selected = new Set(list.filter(c => selected.has(c)));
+  if (!selected.size) selected = new Set(list.slice(0, 4));
+  renderCoins();
+}).catch(() => { $("coins").innerHTML = '<span class="warn">Backtest data is not available on the server.</span>'; });
 </script>
 </body>
 </html>
