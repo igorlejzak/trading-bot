@@ -141,7 +141,7 @@ def wczytaj_stan_z_github():
 historia, pozycje, DANE_OK = wczytaj_stan_z_github()   # pozycje: {"1x|SOL/USDT": {...}}
 zmiany = threading.Event()                              # coś się zmieniło -> zapisz na GitHub
 swieczki = {}                                           # coin -> DataFrame zamkniętych świeczek 15m
-STAN = {"updated": None, "strategies": {}, "coins": {}, "skipped": []}
+STAN = {"updated": None, "strategies": {}, "coins": {}, "skipped": [], "capital_start": KAPITAL_START, "fee": FEE}
 lock = threading.Lock()
 
 
