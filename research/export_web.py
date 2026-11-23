@@ -20,7 +20,7 @@ import pandas as pd
 from data import DB_PATH, EXCHANGE_ID
 
 STEP_15M = 15 * 60_000
-OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../dashboard-research", "data", "web")
+OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "web")
 DOMYSLNE = ["SOL", "BTC", "ETH", "XRP"]
 
 

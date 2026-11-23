@@ -313,4 +313,4 @@ def index():
 
 @app.get("/research")
 def research():
-    return FileResponse("../research/research.html")
+    return FileResponse("research.html")
