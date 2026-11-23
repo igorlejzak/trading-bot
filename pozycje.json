@@ -1,1 +1,24 @@
-{}
+{
+ "original|ETH/USDT": {
+  "typ": "short",
+  "otwarta": "2026-11-23 14:10:58",
+  "wejscia": [
+   {
+    "cena": 1798.84,
+    "usd": 100.0,
+    "czas": "2026-11-23 14:10:58"
+   }
+  ]
+ },
+ "original|XRP/USDT": {
+  "typ": "short",
+  "otwarta": "2026-11-23 14:11:06",
+  "wejscia": [
+   {
+    "cena": 0.9866,
+    "usd": 100.0,
+    "czas": "2026-11-23 14:11:06"
+   }
+  ]
+ }
+}
